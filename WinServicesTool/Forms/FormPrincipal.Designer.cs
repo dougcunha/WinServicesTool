@@ -249,6 +249,7 @@
             Imgs.Images.SetKeyName(2, "play.png");
             Imgs.Images.SetKeyName(3, "square.png");
             Imgs.Images.SetKeyName(4, "rotate-ccw.png");
+            Imgs.Images.SetKeyName(5, "trending-up.png");
             // 
             // BtnLoad
             // 
@@ -314,11 +315,14 @@
             // 
             BtnChangeStartMode.Dock = DockStyle.Fill;
             BtnChangeStartMode.FlatStyle = FlatStyle.Flat;
+            BtnChangeStartMode.ImageKey = "trending-up.png";
+            BtnChangeStartMode.ImageList = Imgs;
             BtnChangeStartMode.Location = new Point(443, 3);
             BtnChangeStartMode.Name = "BtnChangeStartMode";
             BtnChangeStartMode.Size = new Size(74, 38);
             BtnChangeStartMode.TabIndex = 6;
-            BtnChangeStartMode.Text = "StartType";
+            BtnChangeStartMode.Text = "Type";
+            BtnChangeStartMode.TextImageRelation = TextImageRelation.TextBeforeImage;
             BtnChangeStartMode.UseVisualStyleBackColor = true;
             BtnChangeStartMode.Click += BtnChangeStartMode_Click;
             // 
@@ -346,6 +350,7 @@
             // 
             // TextLog
             // 
+            TextLog.BackColor = Color.White;
             TextLog.BorderStyle = BorderStyle.None;
             TextLog.Dock = DockStyle.Fill;
             TextLog.Location = new Point(10, 581);

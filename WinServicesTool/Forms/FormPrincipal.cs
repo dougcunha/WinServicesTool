@@ -39,7 +39,11 @@ public partial class FormPrincipal : Form
 
         // On startup, if we are not running elevated, ask the user to restart as admin
         if (IsAdministrator())
+        {
+            BtnLoad_Click(null, EventArgs.Empty);
+
             return;
+        }
 
         AppendLog("Application not running as administrator. Prompting for elevation...");
         AskAndRestartAsAdmin();
@@ -99,11 +103,20 @@ public partial class FormPrincipal : Form
                     break;
             }
 
-            // Append to TextLog on UI thread
-            if (TextLog.InvokeRequired)
-                TextLog.Invoke(() => TextLog.AppendText(line));
-            else
+            // Append to TextLog on UI thread and auto-scroll to bottom
+            void appendAndScroll()
+            {
                 TextLog.AppendText(line);
+                // move caret to end and scroll
+                TextLog.SelectionStart = TextLog.TextLength;
+                TextLog.SelectionLength = 0;
+                TextLog.ScrollToCaret();
+            }
+
+            if (TextLog.InvokeRequired)
+                TextLog.Invoke(appendAndScroll);
+            else
+                appendAndScroll();
         }
         catch
         {
@@ -220,7 +233,7 @@ public partial class FormPrincipal : Form
         }
     }
 
-    private async void BtnLoad_Click(object sender, EventArgs e)
+    private async void BtnLoad_Click(object? sender, EventArgs e)
     {
         BtnLoad.Enabled = false;
         var previousCursor = Cursor.Current;
