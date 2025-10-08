@@ -51,6 +51,7 @@
             BtnStart = new Button();
             BtnStop = new Button();
             BtnRestart = new Button();
+            BtnChangeStartMode = new Button();
             TxtFilter = new TextBox();
             tabPage2 = new TabPage();
             TextLog = new RichTextBox();
@@ -200,9 +201,10 @@
             // 
             // tableLayoutPanel3
             // 
-            tableLayoutPanel3.ColumnCount = 6;
+            tableLayoutPanel3.ColumnCount = 7;
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80F));
@@ -212,7 +214,8 @@
             tableLayoutPanel3.Controls.Add(BtnStart, 2, 0);
             tableLayoutPanel3.Controls.Add(BtnStop, 3, 0);
             tableLayoutPanel3.Controls.Add(BtnRestart, 4, 0);
-            tableLayoutPanel3.Controls.Add(TxtFilter, 5, 0);
+            tableLayoutPanel3.Controls.Add(BtnChangeStartMode, 5, 0);
+            tableLayoutPanel3.Controls.Add(TxtFilter, 6, 0);
             tableLayoutPanel3.Dock = DockStyle.Fill;
             tableLayoutPanel3.Location = new Point(3, 3);
             tableLayoutPanel3.Name = "tableLayoutPanel3";
@@ -307,16 +310,28 @@
             BtnRestart.UseVisualStyleBackColor = true;
             BtnRestart.Click += BtnRestart_Click;
             // 
+            // BtnChangeStartMode
+            // 
+            BtnChangeStartMode.Dock = DockStyle.Fill;
+            BtnChangeStartMode.FlatStyle = FlatStyle.Flat;
+            BtnChangeStartMode.Location = new Point(443, 3);
+            BtnChangeStartMode.Name = "BtnChangeStartMode";
+            BtnChangeStartMode.Size = new Size(74, 38);
+            BtnChangeStartMode.TabIndex = 6;
+            BtnChangeStartMode.Text = "StartType";
+            BtnChangeStartMode.UseVisualStyleBackColor = true;
+            BtnChangeStartMode.Click += BtnChangeStartMode_Click;
+            // 
             // TxtFilter
             // 
             TxtFilter.BorderStyle = BorderStyle.None;
             TxtFilter.Dock = DockStyle.Fill;
             TxtFilter.Font = new Font("Segoe UI", 10F);
-            TxtFilter.Location = new Point(454, 14);
+            TxtFilter.Location = new Point(534, 14);
             TxtFilter.Margin = new Padding(14);
             TxtFilter.Name = "TxtFilter";
             TxtFilter.PlaceholderText = "Filter text... (ctrl + k)";
-            TxtFilter.Size = new Size(594, 18);
+            TxtFilter.Size = new Size(514, 18);
             TxtFilter.TabIndex = 2;
             // 
             // tabPage2
@@ -376,6 +391,7 @@
     private Button BtnStart;
     private Button BtnStop;
     private Button BtnRestart;
+        private Button BtnChangeStartMode;
         private Button BtnLoad;
         private Button BtnBestFitColumns;
         private TextBox TxtFilter;

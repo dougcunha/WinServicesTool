@@ -1,15 +1,15 @@
-// ReSharper disable AsyncVoidEventHandlerMethod
-
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Security.Principal;
 using System.ServiceProcess;
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 using WinServicesTool.Models;
 using WinServicesTool.Utils;
 
 namespace WinServicesTool.Forms;
 
+// ReSharper disable AsyncVoidEventHandlerMethod
 public partial class FormPrincipal : Form
 {
     private BindingList<Service> _servicesList = [];
@@ -38,12 +38,11 @@ public partial class FormPrincipal : Form
         GridServs.ColumnHeadersDefaultCellStyle = hdrStyle;
 
         // On startup, if we are not running elevated, ask the user to restart as admin
-        if (!IsAdministrator())
-        {
-            AppendLog("Application not running as administrator. Prompting for elevation...");
-            
-            AskAndRestartAsAdmin();
-        }
+        if (IsAdministrator())
+            return;
+
+        AppendLog("Application not running as administrator. Prompting for elevation...");
+        AskAndRestartAsAdmin();
     }
 
     private void GridServs_SelectionChanged(object? sender, EventArgs e)
@@ -129,7 +128,7 @@ public partial class FormPrincipal : Form
 
     private bool AskAndRestartAsAdmin()
     {
-        var res = MessageBox.Show(this, "Este aplicativo precisa de privilégios de administrador para executar essa ação. Reiniciar como administrador?", "Elevação necessária", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+        var res = MessageBox.Show(this, "This application requires administrator privileges to perform this action. Restart as administrator?", "Elevation required", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
         if (res != DialogResult.Yes)
             return false;
@@ -150,8 +149,8 @@ public partial class FormPrincipal : Form
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Falha ao tentar reiniciar elevado");
-            MessageBox.Show(this, "Não foi possível iniciar o aplicativo com privilégios elevados.", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            _logger.LogError(ex, "Failed to relaunch elevated");
+            MessageBox.Show(this, "Unable to start the application with elevated privileges.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
             return false;
         }
@@ -337,15 +336,16 @@ public partial class FormPrincipal : Form
         List<Service> working;
         if (string.IsNullOrEmpty(text))
         {
-            working = new List<Service>(_allServices);
+            working = [.. _allServices];
         }
         else
         {
             var lower = text.ToLowerInvariant();
-            working = _allServices.Where(s =>
-                (!string.IsNullOrEmpty(s.DisplayName) && s.DisplayName.ToLowerInvariant().Contains(lower)) ||
-                (!string.IsNullOrEmpty(s.ServiceName) && s.ServiceName.ToLowerInvariant().Contains(lower))
-            ).ToList();
+
+            working = [.. _allServices.Where(s =>
+                (!string.IsNullOrEmpty(s.DisplayName) && s.DisplayName.Contains(lower, StringComparison.InvariantCultureIgnoreCase)) ||
+                (!string.IsNullOrEmpty(s.ServiceName) && s.ServiceName.Contains(lower, StringComparison.InvariantCultureIgnoreCase))
+            )];
         }
 
         // Apply sorting if requested
@@ -360,6 +360,8 @@ public partial class FormPrincipal : Form
                     : working.OrderByDescending(s => prop.GetValue(s, null)).ToList();
             }
         }
+
+        // ChangeStartMode helper methods are defined after this method
 
         // Update header glyphs and font: reset all, then apply only when there's an active sort (Asc/Desc)
         foreach (DataGridViewColumn c in GridServs.Columns)
@@ -403,6 +405,76 @@ public partial class FormPrincipal : Form
         GridServs.ClearSelection();
     }
 
+    private void BtnChangeStartMode_Click(object? sender, EventArgs e)
+    {
+        var sel = GetSelectedServices().ToList();
+        if (!sel.Any()) return;
+
+        using var dlg = new FormChangeStartMode();
+
+        if (dlg.ShowDialog(this) != DialogResult.OK) 
+            return;
+
+        var newMode = dlg.SelectedMode; // 'Automatic' | 'Manual' | 'Disabled'
+
+        AppendLog($"Changing StartType to {newMode} for {sel.Count} service(s)...");
+
+        Task.Run(() =>
+        {
+            var results = new List<string>();
+            foreach (var s in sel)
+            {
+                try
+                {
+                    using var key = Registry.LocalMachine.OpenSubKey($"SYSTEM\\CurrentControlSet\\Services\\{s.ServiceName}", writable: true);
+                    if (key == null)
+                    {
+                        var msg = $"[{s.ServiceName}] Registry key not found.";
+                        AppendLog(msg, LogLevel.Warning);
+                        results.Add(msg);
+                        continue;
+                    }
+
+                    var startValue = StartModeToDword(newMode);
+                    key.SetValue("Start", startValue, RegistryValueKind.DWord);
+
+                    var okMsg = $"[{s.ServiceName}] StartType defined as {newMode} (value {startValue}).";
+                    AppendLog(okMsg, LogLevel.Information);
+                    results.Add(okMsg);
+                }
+                catch (Exception ex)
+                {
+                        var err = $"[{s.ServiceName}] Failed to change StartType: {ex.Message}";
+                    AppendLog(err, LogLevel.Error);
+                    results.Add(err);
+                }
+            }
+
+            // Refresh list on UI thread and show summary
+            Invoke(() =>
+            {
+                var summary = string.Join(Environment.NewLine, results);
+                MessageBox.Show(this, summary, $"Start Type changed to \"{newMode}\".", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                BtnLoad_Click(this, EventArgs.Empty);
+            });
+        });
+    }
+
+    private static int StartModeToDword(string mode)
+    {
+        // Registry Start values:
+        // 2 = Automatic
+        // 3 = Manual
+        // 4 = Disabled
+        return mode switch
+        {
+            "Automatic" => 2,
+            "Manual" => 3,
+            "Disabled" => 4,
+            _ => 3,
+        };
+    }
+
     private void GridServs_ColumnHeaderMouseClick(object? sender, DataGridViewCellMouseEventArgs e)
     {
         if (e.ColumnIndex < 0 || e.ColumnIndex >= GridServs.Columns.Count)
@@ -432,7 +504,6 @@ public partial class FormPrincipal : Form
         else
         {
             _sortPropertyName = propName;
-            _sortOrder = SortOrder.Ascending;
         }
 
         ApplyFilterAndSort();
@@ -442,7 +513,6 @@ public partial class FormPrincipal : Form
     {
         try
         {
-            if (e.RowIndex < 0 || e.RowIndex >= _servicesList.Count) return;
             var item = _servicesList[e.RowIndex];
 
             // Color the entire row by status
@@ -477,6 +547,7 @@ public partial class FormPrincipal : Form
                     ServiceControllerStatus.Paused => "🟡 ",
                     _ => "⚪ "
                 };
+
                 e.Value = prefix + e.Value;
                 e.FormattingApplied = true;
             }
@@ -504,7 +575,7 @@ public partial class FormPrincipal : Form
             if (AskAndRestartAsAdmin())
                 return;
         }
-        
+
         var sel = GetSelectedServices().ToList();
 
         if (sel.Count == 0)
@@ -513,13 +584,13 @@ public partial class FormPrincipal : Form
         // Only allow starting services that are stopped
         if (sel.Any(s => s.Status != ServiceControllerStatus.Stopped))
         {
-            MessageBox.Show(this, "Selecione apenas serviços que estejam parados para iniciar.", "Iniciar serviços", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(this, "Please select only services that are stopped to start.", "Start services", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             AppendLog("Start aborted: selection contains non-stopped services.", LogLevel.Warning);
 
             return;
         }
 
-        if (MessageBox.Show(this, $"Iniciar {sel.Count} serviço(s)?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+    if (MessageBox.Show(this, $"Start {sel.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
             return;
 
         BtnStart.Enabled = false;
@@ -550,6 +621,7 @@ public partial class FormPrincipal : Form
                     }
                 }
             });
+
             AppendLog($"Start operation completed for {sel.Count} service(s).");
         }
         finally
@@ -570,7 +642,7 @@ public partial class FormPrincipal : Form
             if (AskAndRestartAsAdmin())
                 return;
         }
-        
+
         var sel = GetSelectedServices().ToList();
 
         if (sel.Count == 0)
@@ -579,13 +651,13 @@ public partial class FormPrincipal : Form
         // Only allow stopping services that are running or paused
         if (sel.Any(s => s.Status != ServiceControllerStatus.Running && s.Status != ServiceControllerStatus.Paused))
         {
-            MessageBox.Show(this, "Selecione apenas serviços que estejam em execução ou pausados para parar.", "Parar serviços", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(this, "Please select only services that are running or paused to stop.", "Stop services", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             AppendLog("Stop aborted: selection contains services not running/paused.", LogLevel.Warning);
 
             return;
         }
 
-        if (MessageBox.Show(this, $"Parar {sel.Count} serviço(s)?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+    if (MessageBox.Show(this, $"Stop {sel.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
             return;
 
         BtnStop.Enabled = false;
@@ -635,7 +707,7 @@ public partial class FormPrincipal : Form
             if (AskAndRestartAsAdmin())
                 return;
         }
-        
+
         var sel = GetSelectedServices().ToList();
 
         if (sel.Count == 0)
@@ -644,12 +716,12 @@ public partial class FormPrincipal : Form
         // For restart, require services to be running or paused
         if (sel.Any(s => s.Status != ServiceControllerStatus.Running && s.Status != ServiceControllerStatus.Paused))
         {
-            MessageBox.Show(this, "Selecione apenas serviços que estejam em execução ou pausados para reiniciar.", "Reiniciar serviços", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(this, "Please select only services that are running or paused to restart.", "Restart services", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
             return;
         }
 
-        if (MessageBox.Show(this, $"Reiniciar {sel.Count} serviço(s)?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+    if (MessageBox.Show(this, $"Restart {sel.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
             return;
 
         BtnRestart.Enabled = false;
@@ -690,7 +762,9 @@ public partial class FormPrincipal : Form
             AppendLog("Refreshing services list after restart operation...");
             BtnLoad_Click(this, EventArgs.Empty);
         }
-    }
+
+        // duplicate WMI-based method removed; registry-based implementation exists earlier
+        }
 
     private void LoadColumnWidths()
     {

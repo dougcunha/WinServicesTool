@@ -10,12 +10,15 @@ Formatting and style standards for this C# project:
 - Always add a blank line before if, for, foreach, and return.
 - Always add a blank line after opening or before closing braces.
 - Use expression-bodied members and start a new line before =>
+- When calling a method with more than 4 arguments, chop the arguments so that each argument is written on its own line, 
+the opening parenthesis of the method call or lambda expression must be placed on a new line after the method name. 
+Additionally, if an argument uses a lambda expression or a nested call with its own parentheses, apply the same rule recursively.
 - Constant names in UPPER_CASE.
 - Use var when the type is obvious.
 - XMLDoc is mandatory for public classes and methods.
 - Non-inheritable classes must be sealed.
 - DRY: avoid code repetition.
-- Write code always in portuguese from Brazil.
+- Write code always in english.
 - Use modern collections and initializers ([] and [..] when possible).
 - Add <inherited /> for inherited members in XMLDoc.
 - Always put using before namespace declaration and sort them alphabetically.
@@ -26,8 +29,7 @@ Formatting and style standards for this C# project:
 - Use `StringBuilder` for string concatenation in loops or large concatenations.
 - Use .ConfigureAwait(false) for async methods to avoid deadlocks except in Windows Forms applications.
 - Use `CancellationToken` for long-running operations to allow cancellation.
-- Always place opening parentheses or braces on a new line when breaking lines for method calls, object initializers, or similar constructs.
-- Always use file-scoped namespaces.
+
 
 ## For writing tests:
 
@@ -52,7 +54,8 @@ Formatting and style standards for this C# project:
 - Use code blocks for code snippets.
 - Use links for references and further reading.
 - Keep documentation up to date with code changes.
-- Write always in portuguese from Brazil.
+- Write always in english.
 - Keep a section dedicate to give credits to third-party libraries used in the project.
+
 
 
