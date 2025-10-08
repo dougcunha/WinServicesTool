@@ -410,9 +410,18 @@ public partial class FormPrincipal : Form
         var sel = GetSelectedServices().ToList();
         if (!sel.Any()) return;
 
-        using var dlg = new FormChangeStartMode();
+        // Preselect current start mode from first selected service
+        var initial = sel.First().StartMode switch
+        {
+            ServiceStartMode.Automatic => "Automatic",
+            ServiceStartMode.Manual => "Manual",
+            ServiceStartMode.Disabled => "Disabled",
+            _ => "Manual",
+        };
 
-        if (dlg.ShowDialog(this) != DialogResult.OK) 
+        using var dlg = new FormChangeStartMode(initial);
+
+        if (dlg.ShowDialog(this) != DialogResult.OK)
             return;
 
         var newMode = dlg.SelectedMode; // 'Automatic' | 'Manual' | 'Disabled'
@@ -590,7 +599,7 @@ public partial class FormPrincipal : Form
             return;
         }
 
-    if (MessageBox.Show(this, $"Start {sel.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+        if (MessageBox.Show(this, $"Start {sel.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
             return;
 
         BtnStart.Enabled = false;
@@ -657,7 +666,7 @@ public partial class FormPrincipal : Form
             return;
         }
 
-    if (MessageBox.Show(this, $"Stop {sel.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+        if (MessageBox.Show(this, $"Stop {sel.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
             return;
 
         BtnStop.Enabled = false;
@@ -721,7 +730,7 @@ public partial class FormPrincipal : Form
             return;
         }
 
-    if (MessageBox.Show(this, $"Restart {sel.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+        if (MessageBox.Show(this, $"Restart {sel.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
             return;
 
         BtnRestart.Enabled = false;
