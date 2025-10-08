@@ -1,16 +1,38 @@
-namespace WinServicesTool;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using NLog.Extensions.Logging;
+using WinServicesTool.Forms;
 
-internal static class Program
+
+var services = new ServiceCollection();
+services.AddSingleton<FormPrincipal>();
+
+// Add NLog
+services.AddLogging(builder =>
 {
-    /// <summary>
-    ///  The main entry point for the application.
-    /// </summary>
-    [STAThread]
-    static void Main()
-    {
-        // To customize application configuration such as set high DPI settings or default font,
-        // see https://aka.ms/applicationconfiguration.
-        ApplicationConfiguration.Initialize();
-        Application.Run(new FormPrincipal());
-    }
-}
+    builder.SetMinimumLevel(LogLevel.Trace);
+    builder.AddNLog("nlog.config");
+});
+
+
+var serviceProvider = services.BuildServiceProvider();
+
+// Obtem o logger e faz um log de inicialização
+var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("Application Starting...");
+
+// Loga informações do ambiente e versão do executável
+logger.LogInformation
+(
+    "Environment: {OperatingSystem}, .NET Version: {Version}, Executable: {CurrentDomainFriendlyName}, CurrentDir: {CurrentDirectory}, CommandLine: {CommandLine}",
+    Environment.OSVersion,
+    Environment.Version,
+    AppDomain.CurrentDomain.FriendlyName,
+    Environment.CurrentDirectory,
+    Environment.CommandLine
+);
+
+
+ApplicationConfiguration.Initialize();
+var mainForm = serviceProvider.GetRequiredService<FormPrincipal>();
+Application.Run(mainForm);
