@@ -49,13 +49,13 @@
             LblStartMode = new Label();
             GridServs = new DataGridView();
             ColDisplayName = new DataGridViewTextBoxColumn();
-            serviceNameDataGridViewTextBoxColumn = new DataGridViewTextBoxColumn();
-            statusDataGridViewTextBoxColumn = new DataGridViewTextBoxColumn();
-            startModeDataGridViewTextBoxColumn = new DataGridViewTextBoxColumn();
-            serviceTypeDataGridViewTextBoxColumn = new DataGridViewTextBoxColumn();
-            canPauseAndContinueDataGridViewCheckBoxColumn = new DataGridViewCheckBoxColumn();
-            canShutdownDataGridViewCheckBoxColumn = new DataGridViewCheckBoxColumn();
-            canStopDataGridViewCheckBoxColumn = new DataGridViewCheckBoxColumn();
+            ColServiceName = new DataGridViewTextBoxColumn();
+            ColStatus = new DataGridViewTextBoxColumn();
+            ColStartMode = new DataGridViewTextBoxColumn();
+            ColServiceType = new DataGridViewTextBoxColumn();
+            ColCanPauseAndContinue = new DataGridViewCheckBoxColumn();
+            ColCanShutdown = new DataGridViewCheckBoxColumn();
+            ColCanStop = new DataGridViewCheckBoxColumn();
             serviceBindingSource = new BindingSource(components);
             TabSettings = new TabPage();
             TextLog = new RichTextBox();
@@ -321,7 +321,7 @@
             GridServs.CellBorderStyle = DataGridViewCellBorderStyle.None;
             GridServs.ColumnHeadersHeight = 25;
             GridServs.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            GridServs.Columns.AddRange(new DataGridViewColumn[] { ColDisplayName, serviceNameDataGridViewTextBoxColumn, statusDataGridViewTextBoxColumn, startModeDataGridViewTextBoxColumn, serviceTypeDataGridViewTextBoxColumn, canPauseAndContinueDataGridViewCheckBoxColumn, canShutdownDataGridViewCheckBoxColumn, canStopDataGridViewCheckBoxColumn });
+            GridServs.Columns.AddRange(new DataGridViewColumn[] { ColDisplayName, ColServiceName, ColStatus, ColStartMode, ColServiceType, ColCanPauseAndContinue, ColCanShutdown, ColCanStop });
             GridServs.DataSource = serviceBindingSource;
             GridServs.Dock = DockStyle.Fill;
             GridServs.Location = new Point(3, 93);
@@ -335,58 +335,58 @@
             // ColDisplayName
             // 
             ColDisplayName.DataPropertyName = "DisplayName";
-            ColDisplayName.HeaderText = "DisplayName";
+            ColDisplayName.HeaderText = "Display Name";
             ColDisplayName.Name = "ColDisplayName";
             ColDisplayName.ReadOnly = true;
             // 
-            // serviceNameDataGridViewTextBoxColumn
+            // ColServiceName
             // 
-            serviceNameDataGridViewTextBoxColumn.DataPropertyName = "ServiceName";
-            serviceNameDataGridViewTextBoxColumn.HeaderText = "ServiceName";
-            serviceNameDataGridViewTextBoxColumn.Name = "serviceNameDataGridViewTextBoxColumn";
-            serviceNameDataGridViewTextBoxColumn.ReadOnly = true;
+            ColServiceName.DataPropertyName = "ServiceName";
+            ColServiceName.HeaderText = "Service Name";
+            ColServiceName.Name = "ColServiceName";
+            ColServiceName.ReadOnly = true;
             // 
-            // statusDataGridViewTextBoxColumn
+            // ColStatus
             // 
-            statusDataGridViewTextBoxColumn.DataPropertyName = "Status";
-            statusDataGridViewTextBoxColumn.HeaderText = "Status";
-            statusDataGridViewTextBoxColumn.Name = "statusDataGridViewTextBoxColumn";
-            statusDataGridViewTextBoxColumn.ReadOnly = true;
+            ColStatus.DataPropertyName = "Status";
+            ColStatus.HeaderText = "Status";
+            ColStatus.Name = "ColStatus";
+            ColStatus.ReadOnly = true;
             // 
-            // startModeDataGridViewTextBoxColumn
+            // ColStartMode
             // 
-            startModeDataGridViewTextBoxColumn.DataPropertyName = "StartMode";
-            startModeDataGridViewTextBoxColumn.HeaderText = "StartMode";
-            startModeDataGridViewTextBoxColumn.Name = "startModeDataGridViewTextBoxColumn";
-            startModeDataGridViewTextBoxColumn.ReadOnly = true;
+            ColStartMode.DataPropertyName = "StartMode";
+            ColStartMode.HeaderText = "Start Mode";
+            ColStartMode.Name = "ColStartMode";
+            ColStartMode.ReadOnly = true;
             // 
-            // serviceTypeDataGridViewTextBoxColumn
+            // ColServiceType
             // 
-            serviceTypeDataGridViewTextBoxColumn.DataPropertyName = "ServiceType";
-            serviceTypeDataGridViewTextBoxColumn.HeaderText = "ServiceType";
-            serviceTypeDataGridViewTextBoxColumn.Name = "serviceTypeDataGridViewTextBoxColumn";
-            serviceTypeDataGridViewTextBoxColumn.ReadOnly = true;
+            ColServiceType.DataPropertyName = "ServiceType";
+            ColServiceType.HeaderText = "Service Type";
+            ColServiceType.Name = "ColServiceType";
+            ColServiceType.ReadOnly = true;
             // 
-            // canPauseAndContinueDataGridViewCheckBoxColumn
+            // ColCanPauseAndContinue
             // 
-            canPauseAndContinueDataGridViewCheckBoxColumn.DataPropertyName = "CanPauseAndContinue";
-            canPauseAndContinueDataGridViewCheckBoxColumn.HeaderText = "CanPauseAndContinue";
-            canPauseAndContinueDataGridViewCheckBoxColumn.Name = "canPauseAndContinueDataGridViewCheckBoxColumn";
-            canPauseAndContinueDataGridViewCheckBoxColumn.ReadOnly = true;
+            ColCanPauseAndContinue.DataPropertyName = "CanPauseAndContinue";
+            ColCanPauseAndContinue.HeaderText = "Can Pause & Continue";
+            ColCanPauseAndContinue.Name = "ColCanPauseAndContinue";
+            ColCanPauseAndContinue.ReadOnly = true;
             // 
-            // canShutdownDataGridViewCheckBoxColumn
+            // ColCanShutdown
             // 
-            canShutdownDataGridViewCheckBoxColumn.DataPropertyName = "CanShutdown";
-            canShutdownDataGridViewCheckBoxColumn.HeaderText = "CanShutdown";
-            canShutdownDataGridViewCheckBoxColumn.Name = "canShutdownDataGridViewCheckBoxColumn";
-            canShutdownDataGridViewCheckBoxColumn.ReadOnly = true;
+            ColCanShutdown.DataPropertyName = "CanShutdown";
+            ColCanShutdown.HeaderText = "Can Shutdown";
+            ColCanShutdown.Name = "ColCanShutdown";
+            ColCanShutdown.ReadOnly = true;
             // 
-            // canStopDataGridViewCheckBoxColumn
+            // ColCanStop
             // 
-            canStopDataGridViewCheckBoxColumn.DataPropertyName = "CanStop";
-            canStopDataGridViewCheckBoxColumn.HeaderText = "CanStop";
-            canStopDataGridViewCheckBoxColumn.Name = "canStopDataGridViewCheckBoxColumn";
-            canStopDataGridViewCheckBoxColumn.ReadOnly = true;
+            ColCanStop.DataPropertyName = "CanStop";
+            ColCanStop.HeaderText = "Can Stop";
+            ColCanStop.Name = "ColCanStop";
+            ColCanStop.ReadOnly = true;
             // 
             // serviceBindingSource
             // 
@@ -477,18 +477,18 @@
         private Button BtnLoad;
         private Button BtnBestFitColumns;
         private TextBox TxtFilter;
-        private DataGridViewTextBoxColumn ColDisplayName;
-        private DataGridViewTextBoxColumn serviceNameDataGridViewTextBoxColumn;
-        private DataGridViewTextBoxColumn statusDataGridViewTextBoxColumn;
-        private DataGridViewTextBoxColumn startModeDataGridViewTextBoxColumn;
-        private DataGridViewTextBoxColumn serviceTypeDataGridViewTextBoxColumn;
-        private DataGridViewCheckBoxColumn canPauseAndContinueDataGridViewCheckBoxColumn;
-        private DataGridViewCheckBoxColumn canShutdownDataGridViewCheckBoxColumn;
-        private DataGridViewCheckBoxColumn canStopDataGridViewCheckBoxColumn;
         private ImageList Imgs;
     private RichTextBox TextLog;
         private SplitContainer SplitMain;
         private Label LblFilterStatus;
         private Label LblStartMode;
+        private DataGridViewTextBoxColumn ColDisplayName;
+        private DataGridViewTextBoxColumn ColServiceName;
+        private DataGridViewTextBoxColumn ColStatus;
+        private DataGridViewTextBoxColumn ColStartMode;
+        private DataGridViewTextBoxColumn ColServiceType;
+        private DataGridViewCheckBoxColumn ColCanPauseAndContinue;
+        private DataGridViewCheckBoxColumn ColCanShutdown;
+        private DataGridViewCheckBoxColumn ColCanStop;
     }
 }

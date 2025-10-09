@@ -38,15 +38,11 @@ public partial class FormMain : Form
         // Wire designer filter controls if present
         try
         {
-            CbFilterStatus.Items.AddRange(["All"]);
-            CbFilterStatus.Items.AddRange(Enum.GetNames<ServiceControllerStatus>());
             CbFilterStatus.SelectedIndex = 0;
-            CbFilterStatus.SelectedIndexChanged += (s, e) => ApplyFilterAndSort();        
+            CbFilterStatus.SelectedIndexChanged += (_, _) => ApplyFilterAndSort();
 
-            CbFilterStartMode.Items.AddRange(["All"]);
-            CbFilterStartMode.Items.AddRange(Enum.GetNames<ServiceStartMode>());
             CbFilterStartMode.SelectedIndex = 0;
-            CbFilterStartMode.SelectedIndexChanged += (s, e) => ApplyFilterAndSort();        
+            CbFilterStartMode.SelectedIndexChanged += (_, _) => ApplyFilterAndSort();
         }
         catch
         {
@@ -92,7 +88,7 @@ public partial class FormMain : Form
             CbFilterStatus.Items.Clear();
             CbFilterStatus.Items.Add("All");
 
-            foreach (var st in _allServices.Select(s => s.Status).Distinct().OrderBy(s => s).Cast<ServiceControllerStatus>())
+            foreach (var st in _allServices.Select(s => s.Status).Distinct().Order())
             {
                 CbFilterStatus.Items.Add(st.ToString());
             }
@@ -101,11 +97,11 @@ public partial class FormMain : Form
                 CbFilterStatus.SelectedItem = prevStatus;
             else
                 CbFilterStatus.SelectedIndex = 0;
-        
+
             CbFilterStartMode.Items.Clear();
             CbFilterStartMode.Items.Add("All");
 
-            foreach (var sm in _allServices.Select(s => s.StartMode).Distinct().OrderBy(s => s).Cast<ServiceStartMode>())
+            foreach (var sm in _allServices.Select(static s => s.StartMode).Distinct().Order())
             {
                 CbFilterStartMode.Items.Add(sm.ToString());
             }
@@ -269,10 +265,10 @@ public partial class FormMain : Form
         try
         {
             _allServices = await _serviceManager.GetServicesAsync();
-                // Update the filter dropdowns to show only values present in the loaded list
-                UpdateFilterLists();
 
-                ApplyFilterAndSort();
+            // Update the filter dropdowns to show only values present in the loaded list
+            UpdateFilterLists();
+            ApplyFilterAndSort();
             ApplyColumnSizing();
             LoadColumnWidths();
             AppendLog($"Loaded {_allServices.Count} services.");
@@ -444,11 +440,13 @@ public partial class FormMain : Form
 
     private void BtnChangeStartMode_Click(object? sender, EventArgs e)
     {
-        var sel = GetSelectedServices().ToList();
-        if (!sel.Any()) return;
+        var selecteds = GetSelectedServices().ToList();
+
+        if (selecteds.Count == 0)
+            return;
 
         // Preselect current start mode from first selected service
-        var initial = sel.First().StartMode switch
+        var initial = selecteds[0].StartMode switch
         {
             ServiceStartMode.Automatic => "Automatic",
             ServiceStartMode.Manual => "Manual",
@@ -463,19 +461,21 @@ public partial class FormMain : Form
 
         var newMode = dlg.SelectedMode; // 'Automatic' | 'Manual' | 'Disabled'
 
-        AppendLog($"Changing StartType to {newMode} for {sel.Count} service(s)...");
+        AppendLog($"Changing StartType to {newMode} for {selecteds.Count} service(s)...");
 
         Task.Run(() =>
         {
             var results = new List<string>();
-            foreach (var s in sel)
+
+            foreach (var serv in selecteds)
             {
                 try
                 {
-                    using var key = Registry.LocalMachine.OpenSubKey($"SYSTEM\\CurrentControlSet\\Services\\{s.ServiceName}", writable: true);
+                    using var key = Registry.LocalMachine.OpenSubKey($"SYSTEM\\CurrentControlSet\\Services\\{serv.ServiceName}", writable: true);
+
                     if (key == null)
                     {
-                        var msg = $"[{s.ServiceName}] Registry key not found.";
+                        var msg = $"[{serv.ServiceName}] Registry key not found.";
                         AppendLog(msg, LogLevel.Warning);
                         results.Add(msg);
                         continue;
@@ -484,13 +484,21 @@ public partial class FormMain : Form
                     var startValue = StartModeToDword(newMode);
                     key.SetValue("Start", startValue, RegistryValueKind.DWord);
 
-                    var okMsg = $"[{s.ServiceName}] StartType defined as {newMode} (value {startValue}).";
+                    serv.StartMode = newMode switch
+                    {
+                        "Automatic" => ServiceStartMode.Automatic,
+                        "Manual" => ServiceStartMode.Manual,
+                        "Disabled" => ServiceStartMode.Disabled,
+                        _ => serv.StartMode
+                    };
+
+                    var okMsg = $"[{serv.ServiceName}] StartType defined as {newMode} (value {startValue}).";
                     AppendLog(okMsg);
                     results.Add(okMsg);
                 }
                 catch (Exception ex)
                 {
-                    var err = $"[{s.ServiceName}] Failed to change StartType: {ex.Message}";
+                    var err = $"[{serv.ServiceName}] Failed to change StartType: {ex.Message}";
                     AppendLog(err, LogLevel.Error);
                     results.Add(err);
                 }
@@ -501,7 +509,6 @@ public partial class FormMain : Form
             {
                 var summary = string.Join(Environment.NewLine, results);
                 MessageBox.Show(this, summary, $"Start Type changed to \"{newMode}\".", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                BtnLoad_Click(this, EventArgs.Empty);
             });
         });
     }
@@ -620,13 +627,13 @@ public partial class FormMain : Form
                 return;
         }
 
-        var sel = GetSelectedServices().ToList();
+        var selectedServices = GetSelectedServices().ToList();
 
-        if (sel.Count == 0)
+        if (selectedServices.Count == 0)
             return;
 
         // Only allow starting services that are stopped
-        if (sel.Any(s => s.Status != ServiceControllerStatus.Stopped))
+        if (selectedServices.Any(s => s.Status != ServiceControllerStatus.Stopped))
         {
             MessageBox.Show(this, "Please select only services that are stopped to start.", "Start services", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             AppendLog("Start aborted: selection contains non-stopped services.", LogLevel.Warning);
@@ -634,37 +641,35 @@ public partial class FormMain : Form
             return;
         }
 
-        if (MessageBox.Show(this, $"Start {sel.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+        if (MessageBox.Show(this, $"Start {selectedServices.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
             return;
 
         BtnStart.Enabled = false;
-        AppendLog($"Starting {sel.Count} service(s)...");
+        AppendLog($"Starting {selectedServices.Count} service(s)...");
 
         try
         {
-            foreach (var s in sel)
+            foreach (var serv in selectedServices)
             {
                 try
                 {
-                    await _serviceManager.StartServiceAsync(s.ServiceName);
-                    AppendLog($"Started: {s.ServiceName} ({s.DisplayName})");
-                    _logger.LogInformation("Started service {ServiceName}", s.ServiceName);
+                    await _serviceManager.StartServiceAsync(serv.ServiceName);
+                    serv.Status = ServiceControllerStatus.Running;
+                    AppendLog($"Started: {serv.ServiceName} ({serv.DisplayName})");
+                    _logger.LogInformation("Started service {ServiceName}", serv.ServiceName);
                 }
                 catch (Exception ex)
                 {
-                    AppendLog($"Failed to start {s.ServiceName}: {ex.Message}", LogLevel.Error);
-                    _logger.LogError(ex, "Failed to start service {ServiceName}", s.ServiceName);
+                    AppendLog($"Failed to start {serv.ServiceName}: {ex.Message}", LogLevel.Error);
+                    _logger.LogError(ex, "Failed to start service {ServiceName}", serv.ServiceName);
                 }
             }
 
-            AppendLog($"Start operation completed for {sel.Count} service(s).");
+            AppendLog($"Start operation completed for {selectedServices.Count} service(s).");
         }
         finally
         {
             BtnStart.Enabled = true;
-            // Refresh list to show updated statuses
-            AppendLog("Refreshing services list after start operation...");
-            BtnLoad_Click(this, EventArgs.Empty);
         }
     }
 
@@ -678,13 +683,13 @@ public partial class FormMain : Form
                 return;
         }
 
-        var sel = GetSelectedServices().ToList();
+        var selectedServices = GetSelectedServices().ToList();
 
-        if (sel.Count == 0)
+        if (selectedServices.Count == 0)
             return;
 
         // Only allow stopping services that are running or paused
-        if (sel.Any(s => s.Status != ServiceControllerStatus.Running && s.Status != ServiceControllerStatus.Paused))
+        if (selectedServices.Any(s => s.Status != ServiceControllerStatus.Running && s.Status != ServiceControllerStatus.Paused))
         {
             MessageBox.Show(this, "Please select only services that are running or paused to stop.", "Stop services", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             AppendLog("Stop aborted: selection contains services not running/paused.", LogLevel.Warning);
@@ -692,35 +697,34 @@ public partial class FormMain : Form
             return;
         }
 
-        if (MessageBox.Show(this, $"Stop {sel.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+        if (MessageBox.Show(this, $"Stop {selectedServices.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
             return;
 
         BtnStop.Enabled = false;
-        AppendLog($"Stopping {sel.Count} service(s)...");
+        AppendLog($"Stopping {selectedServices.Count} service(s)...");
         try
         {
-            foreach (var s in sel)
+            foreach (var serv in selectedServices)
             {
                 try
                 {
-                    await _serviceManager.StopServiceAsync(s.ServiceName);
-                    AppendLog($"Stopped: {s.ServiceName} ({s.DisplayName})");
-                    _logger.LogInformation("Stopped service {ServiceName}", s.ServiceName);
+                    await _serviceManager.StopServiceAsync(serv.ServiceName);
+                    serv.Status = ServiceControllerStatus.Stopped;
+                    AppendLog($"Stopped: {serv.ServiceName} ({serv.DisplayName})");
+                    _logger.LogInformation("Stopped service {ServiceName}", serv.ServiceName);
                 }
                 catch (Exception ex)
                 {
-                    AppendLog($"Failed to stop {s.ServiceName}: {ex.Message}", LogLevel.Error);
-                    _logger.LogError(ex, "Failed to stop service {ServiceName}", s.ServiceName);
+                    AppendLog($"Failed to stop {serv.ServiceName}: {ex.Message}", LogLevel.Error);
+                    _logger.LogError(ex, "Failed to stop service {ServiceName}", serv.ServiceName);
                 }
             }
 
-            AppendLog($"Stop operation completed for {sel.Count} service(s).");
+            AppendLog($"Stop operation completed for {selectedServices.Count} service(s).");
         }
         finally
         {
             BtnStop.Enabled = true;
-            AppendLog("Refreshing services list after stop operation...");
-            BtnLoad_Click(this, EventArgs.Empty);
         }
     }
 
@@ -777,12 +781,8 @@ public partial class FormMain : Form
         finally
         {
             BtnRestart.Enabled = true;
-            AppendLog("Refreshing services list after restart operation...");
-            BtnLoad_Click(this, EventArgs.Empty);
         }
-
-        // duplicate WMI-based method removed; registry-based implementation exists earlier
-        }
+    }
 
     private void LoadColumnWidths()
     {
