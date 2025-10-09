@@ -38,6 +38,7 @@ public sealed partial class FormMain : Form
         GridServs.ColumnHeaderMouseClick += GridServs_ColumnHeaderMouseClick;
         GridServs.CellFormatting += GridServs_CellFormatting;
         GridServs.CellPainting += GridServs_CellPainting;
+        GridServs.MouseUp += GridServs_MouseUp;
         GridServs.SelectionChanged += GridServs_SelectionChanged;
         TxtFilter.TextChanged += TxtFilter_TextChanged;
         CbFilterStatus.SelectedIndexChanged += (_, _) => ApplyFilterAndSort();
@@ -146,6 +147,71 @@ public sealed partial class FormMain : Form
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error evaluating selection state");
+        }
+    }
+
+    private void GridServs_MouseUp(object? sender, MouseEventArgs e)
+    {
+        try
+        {
+            if (e.Button != MouseButtons.Right)
+                return;
+
+            // Determine the row under the mouse
+            var hit = GridServs.HitTest(e.X, e.Y);
+
+            if (hit.RowIndex < 0)
+                return;
+
+            // Select the row if not already selected
+            if (!GridServs.Rows[hit.RowIndex].Selected)
+            {
+                GridServs.ClearSelection();
+                GridServs.Rows[hit.RowIndex].Selected = true;
+            }
+
+            var selected = GetSelectedServices().ToList();
+
+            if (selected.Count == 0)
+                return;
+
+            // Build context menu dynamically based on status
+            var menu = new ContextMenuStrip();
+
+            // If all selected are stopped, show Start
+            if (selected.All(s => s.Status == ServiceControllerStatus.Stopped))
+            {
+                var startItem = new ToolStripMenuItem("Start") { Enabled = true };
+                startItem.Click += (_, _) => BtnStart_Click(this, EventArgs.Empty);
+                menu.Items.Add(startItem);
+            }
+
+            // If any selected are running or paused, show Stop and Restart
+            if (selected.Any(s => s.Status is ServiceControllerStatus.Running or ServiceControllerStatus.Paused))
+            {
+                var stopItem = new ToolStripMenuItem("Stop") { Enabled = true };
+                stopItem.Click += (_, _) => BtnStop_Click(this, EventArgs.Empty);
+                menu.Items.Add(stopItem);
+
+                var restartItem = new ToolStripMenuItem("Restart") { Enabled = true };
+                restartItem.Click += (_, _) => BtnRestart_Click(this, EventArgs.Empty);
+                menu.Items.Add(restartItem);
+            }
+
+            // Separator
+            menu.Items.Add(new ToolStripSeparator());
+
+            // Change start mode
+            var changeStart = new ToolStripMenuItem("Change Start Mode...") { Enabled = true };
+            changeStart.Click += (_, _) => BtnChangeStartMode_Click(this, EventArgs.Empty);
+            menu.Items.Add(changeStart);
+
+            // Show menu at cursor
+            menu.Show(GridServs, new Point(e.X, e.Y));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error showing context menu");
         }
     }
 
@@ -266,8 +332,8 @@ public sealed partial class FormMain : Form
             // Update the filter dropdowns to show only values present in the loaded list
             UpdateFilterLists();
             ApplyFilterAndSort();
-            ApplyColumnSizing();
             LoadColumnWidths();
+            ApplyColumnSizing();
             AppendLog($"Loaded {_allServices.Count} services.");
         }
         catch (Exception ex)
@@ -748,10 +814,15 @@ public sealed partial class FormMain : Form
 
     private void LoadColumnWidths()
     {
+        if (_appConfig.AutoWidthColumns)
+            return;
+
         try
         {
             var map = ColumnWidthStore.Load();
-            if (map == null) return;
+
+            if (map == null)
+                return;
 
             foreach (DataGridViewColumn col in GridServs.Columns)
             {

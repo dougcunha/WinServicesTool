@@ -30,6 +30,12 @@ Additionally, if an argument uses a lambda expression or a nested call with its 
 - Use .ConfigureAwait(false) for async methods to avoid deadlocks except in Windows Forms applications.
 - Use `CancellationToken` for long-running operations to allow cancellation.
 
+## For saving and loading configurations:
+
+- Use JSON format for configuration files.
+- Use System.Text.Json for serialization and deserialization.
+- Use databinding to bind configuration properties to UI elements.
+- Validate configuration data before applying it.
 
 ## For writing tests:
 

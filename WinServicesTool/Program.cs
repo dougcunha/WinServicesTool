@@ -33,6 +33,13 @@ logger.LogInformation
 );
 
 
-ApplicationConfiguration.Initialize();
-var mainForm = serviceProvider.GetRequiredService<FormMain>();
-Application.Run(mainForm);
+try
+{
+    ApplicationConfiguration.Initialize();
+    var mainForm = serviceProvider.GetRequiredService<FormMain>();
+    Application.Run(mainForm);
+}
+catch (Exception ex)
+{
+    logger.LogError(ex, "Exception not handled");
+}
