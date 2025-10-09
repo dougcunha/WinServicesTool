@@ -1,11 +1,14 @@
-using Microsoft.Extensions.DependencyInjection;
+ï»¿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using WinServicesTool.Forms;
 
 
 var services = new ServiceCollection();
-services.AddSingleton<FormPrincipal>();
+// Services and DI
+services.AddSingleton<FormMain>();
+services.AddSingleton<WinServicesTool.Services.IWindowsServiceManager, WinServicesTool.Services.WindowsServiceManager>();
+services.AddSingleton<WinServicesTool.Services.IPrivilegeService, WinServicesTool.Services.PrivilegeService>();
 
 // Add NLog
 services.AddLogging(builder =>
@@ -17,11 +20,9 @@ services.AddLogging(builder =>
 
 var serviceProvider = services.BuildServiceProvider();
 
-// Obtem o logger e faz um log de inicialização
 var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
 logger.LogInformation("Application Starting...");
 
-// Loga informações do ambiente e versão do executável
 logger.LogInformation
 (
     "Environment: {OperatingSystem}, .NET Version: {Version}, Executable: {CurrentDomainFriendlyName}, CurrentDir: {CurrentDirectory}, CommandLine: {CommandLine}",
@@ -34,5 +35,5 @@ logger.LogInformation
 
 
 ApplicationConfiguration.Initialize();
-var mainForm = serviceProvider.GetRequiredService<FormPrincipal>();
+var mainForm = serviceProvider.GetRequiredService<FormMain>();
 Application.Run(mainForm);

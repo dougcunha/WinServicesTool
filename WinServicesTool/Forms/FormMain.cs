@@ -1,28 +1,32 @@
 using System.ComponentModel;
-using System.Diagnostics;
-using System.Security.Principal;
 using System.ServiceProcess;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using WinServicesTool.Models;
 using WinServicesTool.Utils;
+using WinServicesTool.Extensions;
+using WinServicesTool.Services;
 
 namespace WinServicesTool.Forms;
 
 // ReSharper disable AsyncVoidEventHandlerMethod
-public partial class FormPrincipal : Form
+public partial class FormMain : Form
 {
     private BindingList<Service> _servicesList = [];
     private List<Service> _allServices = [];
     private CancellationTokenSource? _filterCts;
     private string? _sortPropertyName;
     private SortOrder _sortOrder = SortOrder.None;
-    private readonly ILogger<FormPrincipal> _logger;
+    private readonly ILogger<FormMain> _logger;
+    private readonly IWindowsServiceManager _serviceManager;
+    private readonly IPrivilegeService _privilegeService;
 
-    public FormPrincipal(ILogger<FormPrincipal> logger)
+    public FormMain(ILogger<FormMain> logger, IWindowsServiceManager serviceManager, IPrivilegeService privilegeService)
     {
         InitializeComponent();
         _logger = logger;
+        _serviceManager = serviceManager;
+        _privilegeService = privilegeService;
         FormClosing += FormPrincipal_FormClosing;
         GridServs.ColumnWidthChanged += GridServs_ColumnWidthChanged;
         GridServs.ColumnHeaderMouseClick += GridServs_ColumnHeaderMouseClick;
@@ -31,6 +35,26 @@ public partial class FormPrincipal : Form
         GridServs.SelectionChanged += GridServs_SelectionChanged;
         TxtFilter.TextChanged += TxtFilter_TextChanged;
 
+        // Wire designer filter controls if present
+        try
+        {
+            CbFilterStatus.Items.AddRange(["All"]);
+            CbFilterStatus.Items.AddRange(Enum.GetNames<ServiceControllerStatus>());
+            CbFilterStatus.SelectedIndex = 0;
+            CbFilterStatus.SelectedIndexChanged += (s, e) => ApplyFilterAndSort();        
+
+            CbFilterStartMode.Items.AddRange(["All"]);
+            CbFilterStartMode.Items.AddRange(Enum.GetNames<ServiceStartMode>());
+            CbFilterStartMode.SelectedIndex = 0;
+            CbFilterStartMode.SelectedIndexChanged += (s, e) => ApplyFilterAndSort();        
+        }
+        catch
+        {
+            // ignore designer wiring failures
+        }
+
+        Load += FormPrincipal_Load;
+
         // Make header selection color match header background so headers don't show as "selected" in blue
         var hdrStyle = GridServs.ColumnHeadersDefaultCellStyle;
         hdrStyle.SelectionBackColor = hdrStyle.BackColor;
@@ -38,7 +62,7 @@ public partial class FormPrincipal : Form
         GridServs.ColumnHeadersDefaultCellStyle = hdrStyle;
 
         // On startup, if we are not running elevated, ask the user to restart as admin
-        if (IsAdministrator())
+        if (_privilegeService.IsAdministrator())
         {
             BtnLoad_Click(null, EventArgs.Empty);
 
@@ -46,7 +70,55 @@ public partial class FormPrincipal : Form
         }
 
         AppendLog("Application not running as administrator. Prompting for elevation...");
-        AskAndRestartAsAdmin();
+        _privilegeService.AskAndRestartAsAdmin(this);
+    }
+
+    // Designer-based filter controls are wired in constructor
+
+    private void FormPrincipal_Load(object? sender, EventArgs e)
+    {
+        if (!_privilegeService.IsAdministrator())
+            Close();
+    }
+
+    private void UpdateFilterLists()
+    {
+        try
+        {
+            // Preserve previous selections
+            var prevStatus = CbFilterStatus.SelectedItem as string;
+            var prevStart = CbFilterStartMode.SelectedItem as string;
+
+            CbFilterStatus.Items.Clear();
+            CbFilterStatus.Items.Add("All");
+
+            foreach (var st in _allServices.Select(s => s.Status).Distinct().OrderBy(s => s).Cast<ServiceControllerStatus>())
+            {
+                CbFilterStatus.Items.Add(st.ToString());
+            }
+
+            if (!string.IsNullOrEmpty(prevStatus) && CbFilterStatus.Items.Contains(prevStatus))
+                CbFilterStatus.SelectedItem = prevStatus;
+            else
+                CbFilterStatus.SelectedIndex = 0;
+        
+            CbFilterStartMode.Items.Clear();
+            CbFilterStartMode.Items.Add("All");
+
+            foreach (var sm in _allServices.Select(s => s.StartMode).Distinct().OrderBy(s => s).Cast<ServiceStartMode>())
+            {
+                CbFilterStartMode.Items.Add(sm.ToString());
+            }
+
+            if (!string.IsNullOrEmpty(prevStart) && CbFilterStartMode.Items.Contains(prevStart))
+                CbFilterStartMode.SelectedItem = prevStart;
+            else
+                CbFilterStartMode.SelectedIndex = 0;
+        }
+        catch
+        {
+            // ignore errors populating filters
+        }
     }
 
     private void GridServs_SelectionChanged(object? sender, EventArgs e)
@@ -113,10 +185,7 @@ public partial class FormPrincipal : Form
                 TextLog.ScrollToCaret();
             }
 
-            if (TextLog.InvokeRequired)
-                TextLog.Invoke(appendAndScroll);
-            else
-                appendAndScroll();
+            TextLog.InvokeIfRequired(appendAndScroll);
         }
         catch
         {
@@ -124,50 +193,7 @@ public partial class FormPrincipal : Form
         }
     }
 
-    private static bool IsAdministrator()
-    {
-        try
-        {
-            using var identity = WindowsIdentity.GetCurrent();
-            var principal = new WindowsPrincipal(identity);
-
-            return principal.IsInRole(WindowsBuiltInRole.Administrator);
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private bool AskAndRestartAsAdmin()
-    {
-        var res = MessageBox.Show(this, "This application requires administrator privileges to perform this action. Restart as administrator?", "Elevation required", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-
-        if (res != DialogResult.Yes)
-            return false;
-
-        try
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = Process.GetCurrentProcess().MainModule?.FileName ?? Application.ExecutablePath,
-                UseShellExecute = true,
-                Verb = "runas",
-            };
-
-            Process.Start(psi);
-            Application.Exit();
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to relaunch elevated");
-            MessageBox.Show(this, "Unable to start the application with elevated privileges.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-
-            return false;
-        }
-    }
+    // Elevation related helpers moved to IPrivilegeService
 
     // Draw a custom sort glyph (triangle) in the header so it's visible across themes
     private void GridServs_CellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
@@ -242,25 +268,11 @@ public partial class FormPrincipal : Form
 
         try
         {
-            _allServices = await Task.Run(() =>
-            {
-                return ServiceController.GetServices()
-                    .Select(serv => new Service
-                    {
-                        DisplayName = serv.DisplayName,
-                        ServiceName = serv.ServiceName,
-                        Status = serv.Status,
-                        StartMode = GetStartTypeSafe(serv),
-                        ServiceType = serv.ServiceType,
-                        CanPauseAndContinue = serv.CanPauseAndContinue,
-                        CanShutdown = serv.CanShutdown,
-                        CanStop = serv.CanStop
-                    })
-                    .OrderBy(s => s.DisplayName)
-                    .ToList();
-            });
+            _allServices = await _serviceManager.GetServicesAsync();
+                // Update the filter dropdowns to show only values present in the loaded list
+                UpdateFilterLists();
 
-            ApplyFilterAndSort();
+                ApplyFilterAndSort();
             ApplyColumnSizing();
             LoadColumnWidths();
             AppendLog($"Loaded {_allServices.Count} services.");
@@ -275,18 +287,6 @@ public partial class FormPrincipal : Form
         {
             BtnLoad.Enabled = true;
             Cursor.Current = previousCursor;
-        }
-    }
-
-    private static ServiceStartMode GetStartTypeSafe(ServiceController serv)
-    {
-        try
-        {
-            return serv.StartType;
-        }
-        catch
-        {
-            return ServiceStartMode.System;
         }
     }
 
@@ -359,6 +359,30 @@ public partial class FormPrincipal : Form
                 (!string.IsNullOrEmpty(s.DisplayName) && s.DisplayName.Contains(lower, StringComparison.InvariantCultureIgnoreCase)) ||
                 (!string.IsNullOrEmpty(s.ServiceName) && s.ServiceName.Contains(lower, StringComparison.InvariantCultureIgnoreCase))
             )];
+        }
+
+        // Apply column filters if present
+        try
+        {
+            if (CbFilterStatus.SelectedItem is string statusSel && !string.Equals(statusSel, "All", StringComparison.OrdinalIgnoreCase))
+            {
+                if (Enum.TryParse<ServiceControllerStatus>(statusSel, out var parsedStatus))
+                {
+                    working = working.Where(s => s.Status == parsedStatus).ToList();
+                }
+            }
+
+            if (CbFilterStartMode.SelectedItem is string startSel && !string.Equals(startSel, "All", StringComparison.OrdinalIgnoreCase))
+            {
+                if (Enum.TryParse<ServiceStartMode>(startSel, out var parsedStart))
+                {
+                    working = working.Where(s => s.StartMode == parsedStart).ToList();
+                }
+            }
+        }
+        catch
+        {
+            // swallow filter errors — filters are convenience UI only
         }
 
         // Apply sorting if requested
@@ -461,19 +485,19 @@ public partial class FormPrincipal : Form
                     key.SetValue("Start", startValue, RegistryValueKind.DWord);
 
                     var okMsg = $"[{s.ServiceName}] StartType defined as {newMode} (value {startValue}).";
-                    AppendLog(okMsg, LogLevel.Information);
+                    AppendLog(okMsg);
                     results.Add(okMsg);
                 }
                 catch (Exception ex)
                 {
-                        var err = $"[{s.ServiceName}] Failed to change StartType: {ex.Message}";
+                    var err = $"[{s.ServiceName}] Failed to change StartType: {ex.Message}";
                     AppendLog(err, LogLevel.Error);
                     results.Add(err);
                 }
             }
 
             // Refresh list on UI thread and show summary
-            Invoke(() =>
+            this.InvokeIfRequired(() =>
             {
                 var summary = string.Join(Environment.NewLine, results);
                 MessageBox.Show(this, summary, $"Start Type changed to \"{newMode}\".", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -581,20 +605,18 @@ public partial class FormPrincipal : Form
     }
 
     private IEnumerable<Service> GetSelectedServices()
-    {
-        return GridServs.SelectedRows.Cast<DataGridViewRow>()
+        => GridServs.SelectedRows.Cast<DataGridViewRow>()
             .Select(r => r.DataBoundItem as Service)
-            .Where(s => s != null)!
+            .Where(s => s != null)
             .Cast<Service>();
-    }
 
     private async void BtnStart_Click(object? sender, EventArgs e)
     {
-        if (!IsAdministrator())
+        if (!_privilegeService.IsAdministrator())
         {
             AppendLog("Operation requires administrator. Asking to restart elevated...");
 
-            if (AskAndRestartAsAdmin())
+            if (_privilegeService.AskAndRestartAsAdmin(this))
                 return;
         }
 
@@ -620,29 +642,20 @@ public partial class FormPrincipal : Form
 
         try
         {
-            await Task.Run(() =>
+            foreach (var s in sel)
             {
-                foreach (var s in sel)
+                try
                 {
-                    try
-                    {
-                        using var sc = new ServiceController(s.ServiceName);
-
-                        if (sc.Status == ServiceControllerStatus.Stopped)
-                        {
-                            sc.Start();
-                            sc.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(10));
-                            AppendLog($"Started: {s.ServiceName} ({s.DisplayName})");
-                            _logger.LogInformation("Started service {ServiceName}", s.ServiceName);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        AppendLog($"Failed to start {s.ServiceName}: {ex.Message}", LogLevel.Error);
-                        _logger.LogError(ex, "Failed to start service {ServiceName}", s.ServiceName);
-                    }
+                    await _serviceManager.StartServiceAsync(s.ServiceName);
+                    AppendLog($"Started: {s.ServiceName} ({s.DisplayName})");
+                    _logger.LogInformation("Started service {ServiceName}", s.ServiceName);
                 }
-            });
+                catch (Exception ex)
+                {
+                    AppendLog($"Failed to start {s.ServiceName}: {ex.Message}", LogLevel.Error);
+                    _logger.LogError(ex, "Failed to start service {ServiceName}", s.ServiceName);
+                }
+            }
 
             AppendLog($"Start operation completed for {sel.Count} service(s).");
         }
@@ -657,11 +670,11 @@ public partial class FormPrincipal : Form
 
     private async void BtnStop_Click(object? sender, EventArgs e)
     {
-        if (!IsAdministrator())
+        if (!_privilegeService.IsAdministrator())
         {
             AppendLog("Operation requires administrator. Asking to restart elevated...");
 
-            if (AskAndRestartAsAdmin())
+            if (_privilegeService.AskAndRestartAsAdmin(this))
                 return;
         }
 
@@ -686,29 +699,20 @@ public partial class FormPrincipal : Form
         AppendLog($"Stopping {sel.Count} service(s)...");
         try
         {
-            await Task.Run(() =>
+            foreach (var s in sel)
             {
-                foreach (var s in sel)
+                try
                 {
-                    try
-                    {
-                        using var sc = new ServiceController(s.ServiceName);
-
-                        if (sc.Status is ServiceControllerStatus.Running or ServiceControllerStatus.Paused)
-                        {
-                            sc.Stop();
-                            sc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(10));
-                            AppendLog($"Stopped: {s.ServiceName} ({s.DisplayName})");
-                            _logger.LogInformation("Stopped service {ServiceName}", s.ServiceName);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        AppendLog($"Failed to stop {s.ServiceName}: {ex.Message}", LogLevel.Error);
-                        _logger.LogError(ex, "Failed to stop service {ServiceName}", s.ServiceName);
-                    }
+                    await _serviceManager.StopServiceAsync(s.ServiceName);
+                    AppendLog($"Stopped: {s.ServiceName} ({s.DisplayName})");
+                    _logger.LogInformation("Stopped service {ServiceName}", s.ServiceName);
                 }
-            });
+                catch (Exception ex)
+                {
+                    AppendLog($"Failed to stop {s.ServiceName}: {ex.Message}", LogLevel.Error);
+                    _logger.LogError(ex, "Failed to stop service {ServiceName}", s.ServiceName);
+                }
+            }
 
             AppendLog($"Stop operation completed for {sel.Count} service(s).");
         }
@@ -722,11 +726,11 @@ public partial class FormPrincipal : Form
 
     private async void BtnRestart_Click(object? sender, EventArgs e)
     {
-        if (!IsAdministrator())
+        if (!_privilegeService.IsAdministrator())
         {
             AppendLog("Operation requires administrator. Asking to restart elevated...");
 
-            if (AskAndRestartAsAdmin())
+            if (_privilegeService.AskAndRestartAsAdmin(this))
                 return;
         }
 
@@ -751,31 +755,23 @@ public partial class FormPrincipal : Form
 
         try
         {
-            await Task.Run(() =>
+            foreach (var s in sel)
             {
-                foreach (var s in sel)
+                try
                 {
-                    try
-                    {
-                        using var sc = new ServiceController(s.ServiceName);
-
-                        if (sc.Status is ServiceControllerStatus.Running or ServiceControllerStatus.Paused)
-                        {
-                            sc.Stop();
-                            sc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(10));
-                            sc.Start();
-                            sc.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(10));
-                            AppendLog($"Restarted: {s.ServiceName} ({s.DisplayName})");
-                            _logger.LogInformation("Restarted service {ServiceName}", s.ServiceName);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        AppendLog($"Failed to restart {s.ServiceName}: {ex.Message}", LogLevel.Error);
-                        _logger.LogError(ex, "Failed to restart service {ServiceName}", s.ServiceName);
-                    }
+                    // Stop then start using the service manager to centralize logic
+                    await _serviceManager.StopServiceAsync(s.ServiceName);
+                    await _serviceManager.StartServiceAsync(s.ServiceName);
+                    AppendLog($"Restarted: {s.ServiceName} ({s.DisplayName})");
+                    _logger.LogInformation("Restarted service {ServiceName}", s.ServiceName);
                 }
-            });
+                catch (Exception ex)
+                {
+                    AppendLog($"Failed to restart {s.ServiceName}: {ex.Message}", LogLevel.Error);
+                    _logger.LogError(ex, "Failed to restart service {ServiceName}", s.ServiceName);
+                }
+            }
+
             AppendLog($"Restart operation completed for {sel.Count} service(s).");
         }
         finally
