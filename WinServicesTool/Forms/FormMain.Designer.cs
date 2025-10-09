@@ -1,6 +1,6 @@
 ﻿namespace WinServicesTool.Forms
 {
-    partial class FormMain
+    sealed partial class FormMain
     {
         /// <summary>
         ///  Required designer variable.
@@ -34,9 +34,8 @@
             TabMain = new TabPage();
             tableLayoutPanel2 = new TableLayoutPanel();
             tableLayoutPanel3 = new TableLayoutPanel();
-            BtnBestFitColumns = new Button();
-            Imgs = new ImageList(components);
             BtnLoad = new Button();
+            Imgs = new ImageList(components);
             BtnStart = new Button();
             BtnStop = new Button();
             BtnRestart = new Button();
@@ -58,6 +57,11 @@
             ColCanStop = new DataGridViewCheckBoxColumn();
             serviceBindingSource = new BindingSource(components);
             TabSettings = new TabPage();
+            PnlSettings = new TableLayoutPanel();
+            GrpStarting = new GroupBox();
+            ChkStartAsAdm = new CheckBox();
+            GrpSettingsGrid = new GroupBox();
+            ChkAutoWidth = new CheckBox();
             TextLog = new RichTextBox();
             SplitMain = new SplitContainer();
             TabCtrl.SuspendLayout();
@@ -67,6 +71,10 @@
             tableLayoutPanelFilter.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)GridServs).BeginInit();
             ((System.ComponentModel.ISupportInitialize)serviceBindingSource).BeginInit();
+            TabSettings.SuspendLayout();
+            PnlSettings.SuspendLayout();
+            GrpStarting.SuspendLayout();
+            GrpSettingsGrid.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)SplitMain).BeginInit();
             SplitMain.Panel1.SuspendLayout();
             SplitMain.Panel2.SuspendLayout();
@@ -114,20 +122,18 @@
             // 
             // tableLayoutPanel3
             // 
-            tableLayoutPanel3.ColumnCount = 7;
+            tableLayoutPanel3.ColumnCount = 6;
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80F));
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            tableLayoutPanel3.Controls.Add(BtnBestFitColumns, 1, 0);
             tableLayoutPanel3.Controls.Add(BtnLoad, 0, 0);
-            tableLayoutPanel3.Controls.Add(BtnStart, 2, 0);
-            tableLayoutPanel3.Controls.Add(BtnStop, 3, 0);
-            tableLayoutPanel3.Controls.Add(BtnRestart, 4, 0);
-            tableLayoutPanel3.Controls.Add(BtnChangeStartMode, 5, 0);
+            tableLayoutPanel3.Controls.Add(BtnStart, 1, 0);
+            tableLayoutPanel3.Controls.Add(BtnStop, 2, 0);
+            tableLayoutPanel3.Controls.Add(BtnRestart, 3, 0);
+            tableLayoutPanel3.Controls.Add(BtnChangeStartMode, 4, 0);
             tableLayoutPanel3.Dock = DockStyle.Fill;
             tableLayoutPanel3.Location = new Point(3, 3);
             tableLayoutPanel3.Name = "tableLayoutPanel3";
@@ -135,32 +141,6 @@
             tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             tableLayoutPanel3.Size = new Size(1068, 44);
             tableLayoutPanel3.TabIndex = 1;
-            // 
-            // BtnBestFitColumns
-            // 
-            BtnBestFitColumns.Dock = DockStyle.Fill;
-            BtnBestFitColumns.ImageKey = "columns-3-cog.png";
-            BtnBestFitColumns.ImageList = Imgs;
-            BtnBestFitColumns.Location = new Point(103, 3);
-            BtnBestFitColumns.Name = "BtnBestFitColumns";
-            BtnBestFitColumns.Size = new Size(94, 38);
-            BtnBestFitColumns.TabIndex = 1;
-            BtnBestFitColumns.Text = "Best fit (F3)";
-            BtnBestFitColumns.TextImageRelation = TextImageRelation.TextBeforeImage;
-            BtnBestFitColumns.UseVisualStyleBackColor = true;
-            BtnBestFitColumns.Click += BtnBestFitColumns_Click;
-            // 
-            // Imgs
-            // 
-            Imgs.ColorDepth = ColorDepth.Depth32Bit;
-            Imgs.ImageStream = (ImageListStreamer)resources.GetObject("Imgs.ImageStream");
-            Imgs.TransparentColor = Color.Transparent;
-            Imgs.Images.SetKeyName(0, "refresh-cw.png");
-            Imgs.Images.SetKeyName(1, "columns-3-cog.png");
-            Imgs.Images.SetKeyName(2, "play.png");
-            Imgs.Images.SetKeyName(3, "square.png");
-            Imgs.Images.SetKeyName(4, "rotate-ccw.png");
-            Imgs.Images.SetKeyName(5, "trending-up.png");
             // 
             // BtnLoad
             // 
@@ -176,16 +156,28 @@
             BtnLoad.UseVisualStyleBackColor = true;
             BtnLoad.Click += BtnLoad_Click;
             // 
+            // Imgs
+            // 
+            Imgs.ColorDepth = ColorDepth.Depth32Bit;
+            Imgs.ImageStream = (ImageListStreamer)resources.GetObject("Imgs.ImageStream");
+            Imgs.TransparentColor = Color.Transparent;
+            Imgs.Images.SetKeyName(0, "refresh-cw.png");
+            Imgs.Images.SetKeyName(1, "columns-3-cog.png");
+            Imgs.Images.SetKeyName(2, "play.png");
+            Imgs.Images.SetKeyName(3, "square.png");
+            Imgs.Images.SetKeyName(4, "rotate-ccw.png");
+            Imgs.Images.SetKeyName(5, "trending-up.png");
+            // 
             // BtnStart
             // 
             BtnStart.Dock = DockStyle.Fill;
             BtnStart.ImageKey = "play.png";
             BtnStart.ImageList = Imgs;
-            BtnStart.Location = new Point(203, 3);
+            BtnStart.Location = new Point(103, 3);
             BtnStart.Name = "BtnStart";
-            BtnStart.Size = new Size(74, 38);
+            BtnStart.Size = new Size(94, 38);
             BtnStart.TabIndex = 3;
-            BtnStart.Text = "Start";
+            BtnStart.Text = "Start (F9)";
             BtnStart.TextImageRelation = TextImageRelation.TextBeforeImage;
             BtnStart.UseVisualStyleBackColor = true;
             BtnStart.Click += BtnStart_Click;
@@ -195,11 +187,11 @@
             BtnStop.Dock = DockStyle.Fill;
             BtnStop.ImageKey = "square.png";
             BtnStop.ImageList = Imgs;
-            BtnStop.Location = new Point(283, 3);
+            BtnStop.Location = new Point(203, 3);
             BtnStop.Name = "BtnStop";
-            BtnStop.Size = new Size(74, 38);
+            BtnStop.Size = new Size(94, 38);
             BtnStop.TabIndex = 4;
-            BtnStop.Text = "Stop";
+            BtnStop.Text = "Stop (F2)";
             BtnStop.TextImageRelation = TextImageRelation.TextBeforeImage;
             BtnStop.UseVisualStyleBackColor = true;
             BtnStop.Click += BtnStop_Click;
@@ -209,11 +201,11 @@
             BtnRestart.Dock = DockStyle.Fill;
             BtnRestart.ImageKey = "rotate-ccw.png";
             BtnRestart.ImageList = Imgs;
-            BtnRestart.Location = new Point(363, 3);
+            BtnRestart.Location = new Point(303, 3);
             BtnRestart.Name = "BtnRestart";
-            BtnRestart.Size = new Size(74, 38);
+            BtnRestart.Size = new Size(94, 38);
             BtnRestart.TabIndex = 5;
-            BtnRestart.Text = "Restart";
+            BtnRestart.Text = "Restart (F7)";
             BtnRestart.TextImageRelation = TextImageRelation.TextBeforeImage;
             BtnRestart.UseVisualStyleBackColor = true;
             BtnRestart.Click += BtnRestart_Click;
@@ -223,9 +215,9 @@
             BtnChangeStartMode.Dock = DockStyle.Fill;
             BtnChangeStartMode.ImageKey = "trending-up.png";
             BtnChangeStartMode.ImageList = Imgs;
-            BtnChangeStartMode.Location = new Point(443, 3);
+            BtnChangeStartMode.Location = new Point(403, 3);
             BtnChangeStartMode.Name = "BtnChangeStartMode";
-            BtnChangeStartMode.Size = new Size(74, 38);
+            BtnChangeStartMode.Size = new Size(94, 38);
             BtnChangeStartMode.TabIndex = 6;
             BtnChangeStartMode.Text = "Start mode";
             BtnChangeStartMode.TextImageRelation = TextImageRelation.TextBeforeImage;
@@ -394,6 +386,7 @@
             // 
             // TabSettings
             // 
+            TabSettings.Controls.Add(PnlSettings);
             TabSettings.Location = new Point(4, 24);
             TabSettings.Name = "TabSettings";
             TabSettings.Padding = new Padding(3);
@@ -401,6 +394,71 @@
             TabSettings.TabIndex = 1;
             TabSettings.Text = "Settings";
             TabSettings.UseVisualStyleBackColor = true;
+            // 
+            // PnlSettings
+            // 
+            PnlSettings.ColumnCount = 3;
+            PnlSettings.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
+            PnlSettings.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
+            PnlSettings.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            PnlSettings.Controls.Add(GrpStarting, 1, 0);
+            PnlSettings.Controls.Add(GrpSettingsGrid, 0, 0);
+            PnlSettings.Dock = DockStyle.Fill;
+            PnlSettings.Location = new Point(3, 3);
+            PnlSettings.Name = "PnlSettings";
+            PnlSettings.RowCount = 3;
+            PnlSettings.RowStyles.Add(new RowStyle(SizeType.Absolute, 182F));
+            PnlSettings.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            PnlSettings.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
+            PnlSettings.Size = new Size(1074, 527);
+            PnlSettings.TabIndex = 0;
+            // 
+            // GrpStarting
+            // 
+            GrpStarting.Controls.Add(ChkStartAsAdm);
+            GrpStarting.FlatStyle = FlatStyle.Flat;
+            GrpStarting.Location = new Point(203, 3);
+            GrpStarting.Name = "GrpStarting";
+            GrpStarting.Padding = new Padding(5);
+            GrpStarting.Size = new Size(194, 176);
+            GrpStarting.TabIndex = 1;
+            GrpStarting.TabStop = false;
+            GrpStarting.Text = "Starting";
+            // 
+            // ChkStartAsAdm
+            // 
+            ChkStartAsAdm.AutoSize = true;
+            ChkStartAsAdm.Dock = DockStyle.Top;
+            ChkStartAsAdm.Location = new Point(5, 21);
+            ChkStartAsAdm.Name = "ChkStartAsAdm";
+            ChkStartAsAdm.Size = new Size(184, 19);
+            ChkStartAsAdm.TabIndex = 0;
+            ChkStartAsAdm.Text = "Always start as administrator";
+            ChkStartAsAdm.UseVisualStyleBackColor = true;
+            // 
+            // GrpSettingsGrid
+            // 
+            GrpSettingsGrid.Controls.Add(ChkAutoWidth);
+            GrpSettingsGrid.FlatStyle = FlatStyle.Flat;
+            GrpSettingsGrid.Location = new Point(3, 3);
+            GrpSettingsGrid.Name = "GrpSettingsGrid";
+            GrpSettingsGrid.Padding = new Padding(5);
+            GrpSettingsGrid.Size = new Size(194, 176);
+            GrpSettingsGrid.TabIndex = 0;
+            GrpSettingsGrid.TabStop = false;
+            GrpSettingsGrid.Text = "Grid";
+            // 
+            // ChkAutoWidth
+            // 
+            ChkAutoWidth.AutoSize = true;
+            ChkAutoWidth.Dock = DockStyle.Top;
+            ChkAutoWidth.Location = new Point(5, 21);
+            ChkAutoWidth.Name = "ChkAutoWidth";
+            ChkAutoWidth.Size = new Size(184, 19);
+            ChkAutoWidth.TabIndex = 0;
+            ChkAutoWidth.Text = "Columns auto width ";
+            ChkAutoWidth.UseVisualStyleBackColor = true;
+            ChkAutoWidth.CheckedChanged += ChkAutoWidth_CheckedChanged;
             // 
             // TextLog
             // 
@@ -452,6 +510,12 @@
             tableLayoutPanelFilter.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)GridServs).EndInit();
             ((System.ComponentModel.ISupportInitialize)serviceBindingSource).EndInit();
+            TabSettings.ResumeLayout(false);
+            PnlSettings.ResumeLayout(false);
+            GrpStarting.ResumeLayout(false);
+            GrpStarting.PerformLayout();
+            GrpSettingsGrid.ResumeLayout(false);
+            GrpSettingsGrid.PerformLayout();
             SplitMain.Panel1.ResumeLayout(false);
             SplitMain.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)SplitMain).EndInit();
@@ -475,7 +539,6 @@
     private Button BtnRestart;
         private Button BtnChangeStartMode;
         private Button BtnLoad;
-        private Button BtnBestFitColumns;
         private TextBox TxtFilter;
         private ImageList Imgs;
     private RichTextBox TextLog;
@@ -490,5 +553,10 @@
         private DataGridViewCheckBoxColumn ColCanPauseAndContinue;
         private DataGridViewCheckBoxColumn ColCanShutdown;
         private DataGridViewCheckBoxColumn ColCanStop;
+        private TableLayoutPanel PnlSettings;
+        private GroupBox GrpSettingsGrid;
+        private CheckBox ChkAutoWidth;
+        private GroupBox GrpStarting;
+        private CheckBox ChkStartAsAdm;
     }
 }

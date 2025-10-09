@@ -27,19 +27,22 @@ public sealed class PrivilegeService : IPrivilegeService
         }
     }
 
-    public bool AskAndRestartAsAdmin(Form? owner)
+    public void AskAndRestartAsAdmin(Form? owner, bool alwaysStartAsAdm)
     {
-        var res = MessageBox.Show
-        (
-            owner,
-            "This application requires administrator privileges to perform this action. Restart as administrator?",
-            "Elevation required",
-            MessageBoxButtons.YesNo,
-            MessageBoxIcon.Question
-        );
+        if (!alwaysStartAsAdm)
+        {
+            var resp = MessageBox.Show
+            (
+                owner,
+                "This application requires administrator privileges to perform this action. Restart as administrator?",
+                "Elevation required",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question
+            ) == DialogResult.No;
 
-        if (res != DialogResult.Yes)
-            return false;
+            if (resp)
+                return;
+        }
 
         try
         {
@@ -52,15 +55,11 @@ public sealed class PrivilegeService : IPrivilegeService
 
             Process.Start(psi);
             Application.Exit();
-
-            return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to relaunch elevated");
             MessageBox.Show(owner, "Unable to start the application with elevated privileges.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            
-            return false;
         }
     }
 }

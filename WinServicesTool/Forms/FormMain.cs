@@ -10,8 +10,12 @@ using WinServicesTool.Services;
 namespace WinServicesTool.Forms;
 
 // ReSharper disable AsyncVoidEventHandlerMethod
-public partial class FormMain : Form
+public sealed partial class FormMain : Form
 {
+    // App configuration
+    private readonly AppConfig _appConfig;
+
+    // Timer used to debounce form resize events when AutoWidthColumns is enabled
     private BindingList<Service> _servicesList = [];
     private List<Service> _allServices = [];
     private CancellationTokenSource? _filterCts;
@@ -21,12 +25,14 @@ public partial class FormMain : Form
     private readonly IWindowsServiceManager _serviceManager;
     private readonly IPrivilegeService _privilegeService;
 
-    public FormMain(ILogger<FormMain> logger, IWindowsServiceManager serviceManager, IPrivilegeService privilegeService)
+    public FormMain(ILogger<FormMain> logger, IWindowsServiceManager serviceManager, IPrivilegeService privilegeService, AppConfig appConfig)
     {
         InitializeComponent();
+        _appConfig = appConfig;
         _logger = logger;
         _serviceManager = serviceManager;
         _privilegeService = privilegeService;
+        _appConfig.PropertyChanged += AppConfigChanged;
         FormClosing += FormPrincipal_FormClosing;
         GridServs.ColumnWidthChanged += GridServs_ColumnWidthChanged;
         GridServs.ColumnHeaderMouseClick += GridServs_ColumnHeaderMouseClick;
@@ -34,22 +40,12 @@ public partial class FormMain : Form
         GridServs.CellPainting += GridServs_CellPainting;
         GridServs.SelectionChanged += GridServs_SelectionChanged;
         TxtFilter.TextChanged += TxtFilter_TextChanged;
-
-        // Wire designer filter controls if present
-        try
-        {
-            CbFilterStatus.SelectedIndex = 0;
-            CbFilterStatus.SelectedIndexChanged += (_, _) => ApplyFilterAndSort();
-
-            CbFilterStartMode.SelectedIndex = 0;
-            CbFilterStartMode.SelectedIndexChanged += (_, _) => ApplyFilterAndSort();
-        }
-        catch
-        {
-            // ignore designer wiring failures
-        }
-
+        CbFilterStatus.SelectedIndexChanged += (_, _) => ApplyFilterAndSort();
+        CbFilterStartMode.SelectedIndexChanged += (_, _) => ApplyFilterAndSort();
         Load += FormPrincipal_Load;
+
+        ChkAutoWidth.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.AutoWidthColumns), false, DataSourceUpdateMode.OnPropertyChanged);
+        ChkStartAsAdm.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.AlwaysStartsAsAdministrator), false, DataSourceUpdateMode.OnPropertyChanged);
 
         // Make header selection color match header background so headers don't show as "selected" in blue
         var hdrStyle = GridServs.ColumnHeadersDefaultCellStyle;
@@ -66,8 +62,11 @@ public partial class FormMain : Form
         }
 
         AppendLog("Application not running as administrator. Prompting for elevation...");
-        _privilegeService.AskAndRestartAsAdmin(this);
+        _privilegeService.AskAndRestartAsAdmin(this, _appConfig.AlwaysStartsAsAdministrator);
     }
+
+    private void AppConfigChanged(object? sender, PropertyChangedEventArgs e)
+        => _appConfig.Save();
 
     // Designer-based filter controls are wired in constructor
 
@@ -111,9 +110,9 @@ public partial class FormMain : Form
             else
                 CbFilterStartMode.SelectedIndex = 0;
         }
-        catch
+        catch (Exception ex)
         {
-            // ignore errors populating filters
+            _logger.LogError(ex, "Failed to update filter lists");
         }
     }
 
@@ -172,7 +171,7 @@ public partial class FormMain : Form
             }
 
             // Append to TextLog on UI thread and auto-scroll to bottom
-            void appendAndScroll()
+            void AppendAndScroll()
             {
                 TextLog.AppendText(line);
                 // move caret to end and scroll
@@ -181,15 +180,13 @@ public partial class FormMain : Form
                 TextLog.ScrollToCaret();
             }
 
-            TextLog.InvokeIfRequired(appendAndScroll);
+            TextLog.InvokeIfRequired(AppendAndScroll);
         }
         catch
         {
             // swallow
         }
     }
-
-    // Elevation related helpers moved to IPrivilegeService
 
     // Draw a custom sort glyph (triangle) in the header so it's visible across themes
     private void GridServs_CellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
@@ -288,26 +285,17 @@ public partial class FormMain : Form
 
     private void ApplyColumnSizing()
     {
-        // Prefer DisplayName and ServiceName to fill available space
-        foreach (DataGridViewColumn col in GridServs.Columns)
-        {
-            col.Resizable = DataGridViewTriState.True;
-            // We'll manage the sort glyph programmatically
-            col.SortMode = DataGridViewColumnSortMode.Programmatic;
-        }
-
         // Make the main text columns fill remaining space
-        var displayCol = GridServs.Columns.Cast<DataGridViewColumn>().FirstOrDefault(c => c.DataPropertyName == "DisplayName");
-        var serviceCol = GridServs.Columns.Cast<DataGridViewColumn>().FirstOrDefault(c => c.DataPropertyName == "ServiceName");
-
-        displayCol?.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-        serviceCol?.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+        ColDisplayName.AutoSizeMode = ChkAutoWidth.Checked
+            ? DataGridViewAutoSizeColumnMode.Fill
+            : DataGridViewAutoSizeColumnMode.None;
 
         // Other columns: size to content
-        foreach (var col in GridServs.Columns.Cast<DataGridViewColumn>())
+        foreach (var col in GridServs.Columns.Cast<DataGridViewColumn>().Where(col => col != ColDisplayName))
         {
-            if (col.AutoSizeMode == DataGridViewAutoSizeColumnMode.NotSet)
-                col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            col.AutoSizeMode = ChkAutoWidth.Checked
+                ? DataGridViewAutoSizeColumnMode.AllCells
+                : DataGridViewAutoSizeColumnMode.None;
         }
     }
 
@@ -326,7 +314,10 @@ public partial class FormMain : Form
         {
             // Wait 400ms after last keystroke
             await Task.Delay(400, ct);
-            if (ct.IsCancellationRequested) return;
+
+            if (ct.IsCancellationRequested)
+                return;
+
             ApplyFilterImmediately();
         }
         catch (TaskCanceledException)
@@ -407,6 +398,7 @@ public partial class FormMain : Form
         if (!string.IsNullOrEmpty(_sortPropertyName) && _sortOrder != SortOrder.None)
         {
             var col = GridServs.Columns.Cast<DataGridViewColumn>().FirstOrDefault(c => c.DataPropertyName == _sortPropertyName || c.Name == _sortPropertyName);
+
             if (col != null)
             {
                 col.HeaderCell.SortGlyphDirection = _sortOrder;
@@ -514,19 +506,13 @@ public partial class FormMain : Form
     }
 
     private static int StartModeToDword(string mode)
-    {
-        // Registry Start values:
-        // 2 = Automatic
-        // 3 = Manual
-        // 4 = Disabled
-        return mode switch
+        => mode switch
         {
             "Automatic" => 2,
             "Manual" => 3,
             "Disabled" => 4,
             _ => 3,
         };
-    }
 
     private void GridServs_ColumnHeaderMouseClick(object? sender, DataGridViewCellMouseEventArgs e)
     {
@@ -605,9 +591,9 @@ public partial class FormMain : Form
                 e.FormattingApplied = true;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignore formatting errors
+            _logger.LogError(ex, "Error formatting cell");
         }
     }
 
@@ -619,14 +605,6 @@ public partial class FormMain : Form
 
     private async void BtnStart_Click(object? sender, EventArgs e)
     {
-        if (!_privilegeService.IsAdministrator())
-        {
-            AppendLog("Operation requires administrator. Asking to restart elevated...");
-
-            if (_privilegeService.AskAndRestartAsAdmin(this))
-                return;
-        }
-
         var selectedServices = GetSelectedServices().ToList();
 
         if (selectedServices.Count == 0)
@@ -675,14 +653,6 @@ public partial class FormMain : Form
 
     private async void BtnStop_Click(object? sender, EventArgs e)
     {
-        if (!_privilegeService.IsAdministrator())
-        {
-            AppendLog("Operation requires administrator. Asking to restart elevated...");
-
-            if (_privilegeService.AskAndRestartAsAdmin(this))
-                return;
-        }
-
         var selectedServices = GetSelectedServices().ToList();
 
         if (selectedServices.Count == 0)
@@ -730,14 +700,6 @@ public partial class FormMain : Form
 
     private async void BtnRestart_Click(object? sender, EventArgs e)
     {
-        if (!_privilegeService.IsAdministrator())
-        {
-            AppendLog("Operation requires administrator. Asking to restart elevated...");
-
-            if (_privilegeService.AskAndRestartAsAdmin(this))
-                return;
-        }
-
         var sel = GetSelectedServices().ToList();
 
         if (sel.Count == 0)
@@ -801,11 +763,15 @@ public partial class FormMain : Form
                 col.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignore
+            _logger.LogError(ex, "Failed to load column widths");
         }
     }
+
+    // Persist app settings when user toggles checkbox
+    private void ChkAutoWidth_CheckedChanged(object? sender, EventArgs e)
+        => ApplyColumnSizing();
 
     private void SaveColumnWidths()
     {
@@ -814,9 +780,9 @@ public partial class FormMain : Form
             var map = GridServs.Columns.Cast<DataGridViewColumn>().ToDictionary(c => c.Name, c => c.Width);
             ColumnWidthStore.Save(map);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignore
+            _logger.LogError(ex, "Failed to save column widths");
         }
     }
 
@@ -826,38 +792,37 @@ public partial class FormMain : Form
     private void FormPrincipal_FormClosing(object? sender, FormClosingEventArgs e)
         => SaveColumnWidths();
 
-    private void BtnBestFitColumns_Click(object sender, EventArgs e)
-        => ApplyColumnSizing();
-
     private void FormPrincipal_KeyDown(object sender, KeyEventArgs e)
     {
-        // Se apertar ctrl + k , foca no filtro
-        if (e is { Control: true, KeyCode: Keys.K })
+        switch (e)
         {
+            case { Control: true, KeyCode: Keys.K }:
+                TxtFilter.Focus();
+                e.Handled = true;
+                break;
 
-            TxtFilter.Focus();
-            e.Handled = true;
-        }
+            case { KeyCode: Keys.Escape }:
+                TxtFilter.Clear();
+                e.Handled = true;
+                break;
 
-        // Se apertar ESC no filtro, limpa o filtro
-        if (e is { KeyCode: Keys.Escape })
-        {
-            TxtFilter.Clear();
-            e.Handled = true;
-        }
+            case { KeyCode: Keys.F5 }:
+                BtnLoad_Click(sender, e);
+                e.Handled = true;
+                break;
 
-        // Se apertar F5, recarrega a lista
-        if (e is { KeyCode: Keys.F5 })
-        {
-            BtnLoad_Click(sender, e);
-            e.Handled = true;
-        }
-
-        // Se apertas F3 ajusta as colunas
-        if (e is { KeyCode: Keys.F3 })
-        {
-            ApplyColumnSizing();
-            e.Handled = true;
+            case { KeyCode: Keys.F9 }:
+                BtnStart_Click(sender, e);
+                e.Handled = true;
+                break;
+            case { KeyCode: Keys.F7 }:
+                BtnRestart_Click(sender, e);
+                e.Handled = true;
+                break;
+            case { KeyCode: Keys.F2 }:
+                BtnStop_Click(sender, e);
+                e.Handled = true;
+                break;
         }
     }
 }

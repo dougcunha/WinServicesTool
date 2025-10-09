@@ -4,11 +4,9 @@ namespace WinServicesTool.Utils;
 
 internal static class ColumnWidthStore
 {
-    private static readonly string AppFolder = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "WinServicesTool");
+    private static readonly string _appFolder = Environment.CurrentDirectory;
 
-    private static readonly string FilePath = Path.Combine(AppFolder, "column_widths.json");
+    private static readonly string _filePath = Path.Combine(_appFolder, "column_widths.json");
 
     /// <summary>
     /// Saves the given column widths to a JSON file in the application data folder.
@@ -20,9 +18,9 @@ internal static class ColumnWidthStore
     {
         try
         {
-            Directory.CreateDirectory(AppFolder);
+            Directory.CreateDirectory(_appFolder);
             var options = new JsonSerializerOptions { WriteIndented = true };
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(widths, options));
+            File.WriteAllText(_filePath, JsonSerializer.Serialize(widths, options));
         }
         catch
         {
@@ -42,8 +40,8 @@ internal static class ColumnWidthStore
     {
         try
         {
-            if (!File.Exists(FilePath)) return null;
-            var json = File.ReadAllText(FilePath);
+            if (!File.Exists(_filePath)) return null;
+            var json = File.ReadAllText(_filePath);
             return JsonSerializer.Deserialize<Dictionary<string, int>>(json);
         }
         catch

@@ -14,5 +14,5 @@ public interface IPrivilegeService
     /// Prompt the user to restart the application as administrator and attempt to relaunch.
     /// Returns true if the relaunch was initiated.
     /// </summary>
-    bool AskAndRestartAsAdmin(Form? owner);
+    void AskAndRestartAsAdmin(Form? owner, bool shouldAsk);
 }

@@ -2,13 +2,14 @@
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using WinServicesTool.Forms;
-
+using WinServicesTool.Services;
+using WinServicesTool.Utils;
 
 var services = new ServiceCollection();
-// Services and DI
 services.AddSingleton<FormMain>();
-services.AddSingleton<WinServicesTool.Services.IWindowsServiceManager, WinServicesTool.Services.WindowsServiceManager>();
-services.AddSingleton<WinServicesTool.Services.IPrivilegeService, WinServicesTool.Services.PrivilegeService>();
+services.AddSingleton<IWindowsServiceManager, WindowsServiceManager>();
+services.AddSingleton<IPrivilegeService, PrivilegeService>();
+services.AddSingleton<AppConfig>(_ => AppConfig.Load());
 
 // Add NLog
 services.AddLogging(builder =>
@@ -17,9 +18,7 @@ services.AddLogging(builder =>
     builder.AddNLog("nlog.config");
 });
 
-
 var serviceProvider = services.BuildServiceProvider();
-
 var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
 logger.LogInformation("Application Starting...");
 
