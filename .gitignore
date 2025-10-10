@@ -363,3 +363,5 @@ MigrationBackup/
 FodyWeavers.xsd
 WinServicesTool/app_config.json
 WinServicesTool/column_widths.json
+column_widths.json
+app_config.json

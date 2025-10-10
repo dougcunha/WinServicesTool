@@ -11,6 +11,11 @@ public sealed partial class AppConfig : INotifyPropertyChanged
     public bool AutoWidthColumns { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the Path column should be shown in the services grid.
+    /// </summary>
+    public bool ShowPathColumn { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets a value indicating whether the application should always start with administrator privileges.
     /// </summary>
     public bool AlwaysStartsAsAdministrator { get; set; }

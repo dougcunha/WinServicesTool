@@ -1,6 +1,7 @@
 using System.ServiceProcess;
 using Microsoft.Extensions.Logging;
 using WinServicesTool.Models;
+using WinServicesTool.Utils;
 
 namespace WinServicesTool.Services;
 
@@ -10,22 +11,46 @@ namespace WinServicesTool.Services;
 public sealed class WindowsServiceManager : IWindowsServiceManager
 {
     private readonly ILogger<WindowsServiceManager> _logger;
+    private readonly AppConfig _appConfig;
 
-    public WindowsServiceManager(ILogger<WindowsServiceManager> logger)
+    public WindowsServiceManager(ILogger<WindowsServiceManager> logger, AppConfig appConfig)
     {
         _logger = logger;
+        _appConfig = appConfig;
     }
 
-    public Task<List<Models.Service>> GetServicesAsync()
+    public Task<List<Service>> GetServicesAsync()
     {
         return Task.Run(() =>
         {
             try
             {
-                return ServiceController.GetServices()
+                var services = ServiceController.GetServices();
+
+                if (!_appConfig.ShowPathColumn)
+                {
+                    return [.. services
+                        .Select(serv => new Service
+                        {
+                            Path = string.Empty,
+                            DisplayName = serv.DisplayName,
+                            ServiceName = serv.ServiceName,
+                            Status = serv.Status,
+                            StartMode = GetStartTypeSafe(serv),
+                            ServiceType = ServiceTypeHelper.Describe((int)serv.ServiceType),
+                            CanPauseAndContinue = serv.CanPauseAndContinue,
+                            CanShutdown = serv.CanShutdown,
+                            CanStop = serv.CanStop
+                        })
+                        .OrderBy(s => s.DisplayName)];
+                }
+
+                using var pathHelper = new ServicePathHelper();
+
+                return services
                     .Select(serv => new Service
                     {
-                        Path = ServicePathHelper.GetExecutablePath(serv.ServiceName),
+                        Path = pathHelper.GetExecutablePath(serv.ServiceName) ?? string.Empty,
                         DisplayName = serv.DisplayName,
                         ServiceName = serv.ServiceName,
                         Status = serv.Status,

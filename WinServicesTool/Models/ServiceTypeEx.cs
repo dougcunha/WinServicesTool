@@ -7,12 +7,12 @@ public enum ServiceTypeEx
     FileSystemDriver = 0x2,
     Adapter = 0x4,
     RecognizerDriver = 0x8,
-    Win32OwnProcess = 0x10,
-    Win32ShareProcess = 0x20,
-    InteractiveProcess = 0x100,
-    UserService = 0x40,
-    UserServiceInstance = 0x80,
-    PackageService = 0x200
+    OwnProc = 0x10,
+    ShareProc = 0x20,
+    Interactive = 0x100,
+    User = 0x40,
+    UserInst = 0x80,
+    Package = 0x200
 }
 
 public static class ServiceTypeHelper

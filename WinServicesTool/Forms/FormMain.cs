@@ -47,12 +47,15 @@ public sealed partial class FormMain : Form
         Load += FormPrincipal_Load;
 
         ChkAutoWidth.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.AutoWidthColumns), false, DataSourceUpdateMode.OnPropertyChanged);
+        ChkShowPath.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.ShowPathColumn), false, DataSourceUpdateMode.OnPropertyChanged);
         ChkStartAsAdm.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.AlwaysStartsAsAdministrator), false, DataSourceUpdateMode.OnPropertyChanged);
 
         // Make header selection color match header background so headers don't show as "selected" in blue
         var hdrStyle = GridServs.ColumnHeadersDefaultCellStyle;
         hdrStyle.SelectionBackColor = hdrStyle.BackColor;
         hdrStyle.SelectionForeColor = hdrStyle.ForeColor;
+        hdrStyle.WrapMode = DataGridViewTriState.True; // Enable word wrap for multi-line headers
+        hdrStyle.Alignment = DataGridViewContentAlignment.MiddleCenter; // Center align headers vertically
         GridServs.ColumnHeadersDefaultCellStyle = hdrStyle;
 
         // On startup, if we are not running elevated, ask the user to restart as admin
@@ -68,14 +71,25 @@ public sealed partial class FormMain : Form
     }
 
     private void AppConfigChanged(object? sender, PropertyChangedEventArgs e)
-        => _appConfig.Save();
+    {
+        _appConfig.Save();
+
+        // Handle dynamic column visibility changes
+        if (e.PropertyName == nameof(AppConfig.ShowPathColumn))
+        {
+            _ = TogglePathColumnVisibilityAsync();
+        }
+    }
 
     // Designer-based filter controls are wired in constructor
 
-    private void FormPrincipal_Load(object? sender, EventArgs e)
+    private async void FormPrincipal_Load(object? sender, EventArgs e)
     {
         if (!_privilegeService.IsAdministrator())
             Close();
+
+        await TogglePathColumnVisibilityAsync();
+        ApplyColumnSizing();
     }
 
     private void UpdateFilterLists()
@@ -339,9 +353,9 @@ public sealed partial class FormMain : Form
             }
 
             // Draw a small triangle on the right side of the header
-            var g = e.Graphics;
+            var graphicsContext = e.Graphics;
 
-            if (g == null)
+            if (graphicsContext == null)
             {
                 e.Handled = true;
 
@@ -358,8 +372,8 @@ public sealed partial class FormMain : Form
                 : [new Point(cx, cy - (size / 2)), new Point(cx + size, cy - (size / 2)), new Point(cx + (size / 2), cy + (size / 2))];
 
             using var brush = new SolidBrush(Color.FromArgb(80, 80, 80));
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            g.FillPolygon(brush, pts);
+            graphicsContext.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            graphicsContext.FillPolygon(brush, pts);
 
             e.Handled = true;
         }
@@ -380,11 +394,33 @@ public sealed partial class FormMain : Form
         {
             _allServices = await _serviceManager.GetServicesAsync();
 
+            // Configure column sizing BEFORE populating data
+            // This is critical for Fill mode to work correctly
+            if (ChkAutoWidth.Checked)
+            {
+                ApplyColumnSizing();
+            }
+            else
+            {
+                // Set all to None before loading saved widths
+                foreach (var col in GridServs.Columns.Cast<DataGridViewColumn>())
+                {
+                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
+                }
+            }
+
             // Update the filter dropdowns to show only values present in the loaded list
             UpdateFilterLists();
+            
+            // Now populate the grid with data
             ApplyFilterAndSort();
-            LoadColumnWidths();
-            ApplyColumnSizing();
+            
+            // Load saved widths only if NOT in auto-width mode (after data is populated)
+            if (!ChkAutoWidth.Checked)
+            {
+                LoadColumnWidths();
+            }
+            
             AppendLog($"Loaded {_allServices.Count} services.");
         }
         catch (Exception ex)
@@ -402,17 +438,54 @@ public sealed partial class FormMain : Form
 
     private void ApplyColumnSizing()
     {
-        // Make the main text columns fill remaining space
-        ColDisplayName.AutoSizeMode = ChkAutoWidth.Checked
-            ? DataGridViewAutoSizeColumnMode.Fill
-            : DataGridViewAutoSizeColumnMode.None;
+        // Temporarily suspend layout to avoid flickering
+        GridServs.SuspendLayout();
 
-        // Other columns: size to content
-        foreach (var col in GridServs.Columns.Cast<DataGridViewColumn>().Where(col => col != ColDisplayName))
+        try
         {
-            col.AutoSizeMode = ChkAutoWidth.Checked
-                ? DataGridViewAutoSizeColumnMode.AllCells
-                : DataGridViewAutoSizeColumnMode.None;
+            if (ChkAutoWidth.Checked)
+            {
+                // First, configure non-Fill columns to take minimal space
+                foreach (var col in GridServs.Columns.Cast<DataGridViewColumn>()
+                    .Where(c => c != ColDisplayName && c != ColPath))
+                {
+                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                    col.MinimumWidth = 50;
+                    col.FillWeight = 50; // Minimal weight so they don't expand
+                }
+
+                // Configure Fill columns to share remaining space
+                ColDisplayName.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                ColDisplayName.MinimumWidth = 150;
+                ColDisplayName.FillWeight = 100;
+
+                // Path column should also fill when visible
+                if (ColPath.Visible)
+                {
+                    ColPath.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                    ColPath.MinimumWidth = 200;
+                    ColPath.FillWeight = 150; // More weight for Path (longer content)
+                }
+                else
+                {
+                    // When Path is hidden, ensure it doesn't interfere
+                    ColPath.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
+                    ColPath.FillWeight = 1;
+                }
+            }
+            else
+            {
+                // Manual sizing mode - set all to None to respect saved widths
+                foreach (var col in GridServs.Columns.Cast<DataGridViewColumn>())
+                {
+                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
+                }
+            }
+        }
+        finally
+        {
+            GridServs.ResumeLayout();
+            GridServs.Refresh();
         }
     }
 
@@ -451,7 +524,7 @@ public sealed partial class FormMain : Form
         var text = TxtFilter.Text.Trim();
 
         List<Service> working;
-        
+
         if (string.IsNullOrEmpty(text))
         {
             working = [.. _allServices];
@@ -894,7 +967,22 @@ public sealed partial class FormMain : Form
 
     // Persist app settings when user toggles checkbox
     private void ChkAutoWidth_CheckedChanged(object? sender, EventArgs e)
-        => ApplyColumnSizing();
+    {
+        if (ChkAutoWidth.Checked)
+        {
+            // Switching to auto-width mode
+            ApplyColumnSizing();
+        }
+        else
+        {
+            // Switching to manual mode - load saved widths
+            ApplyColumnSizing(); // First set all to None
+            LoadColumnWidths();  // Then apply saved widths
+        }
+    }
+
+    private async void ChkShowPath_CheckedChanged(object? sender, EventArgs e)
+        => await TogglePathColumnVisibilityAsync();
 
     private void SaveColumnWidths()
     {
@@ -947,5 +1035,49 @@ public sealed partial class FormMain : Form
                 e.Handled = true;
                 break;
         }
+    }
+
+    private async Task TogglePathColumnVisibilityAsync()
+    {
+        // Suspend layout to avoid flickering
+        GridServs.SuspendLayout();
+
+        try
+        {
+            ColPath.Visible = _appConfig.ShowPathColumn;
+
+            // Apply column sizing to adjust layout immediately
+            ApplyColumnSizing();
+        }
+        finally
+        {
+            GridServs.ResumeLayout();
+        }
+
+        // If hiding the column, we're done
+        if (!_appConfig.ShowPathColumn || _servicesList == null)
+            return;
+
+        var servicesToUpdate = _servicesList.Where(s => string.IsNullOrEmpty(s.Path)).ToList();
+
+        if (servicesToUpdate.Count == 0)
+            return;
+
+        // Run the path loading in a background thread to avoid UI freezing
+        await Task.Run(() =>
+        {
+            using var pathHelper = new ServicePathHelper();
+
+            foreach (var service in servicesToUpdate)
+            {
+                service.Path = pathHelper.GetExecutablePath(service.ServiceName) ?? string.Empty;
+            }
+        });
+
+        // Notify the binding source that data changed
+        serviceBindingSource.ResetBindings(false);
+
+        // Reapply column sizing after data is loaded
+        ApplyColumnSizing();
     }
 }
