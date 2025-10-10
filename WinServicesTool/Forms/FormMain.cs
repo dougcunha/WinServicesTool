@@ -6,6 +6,7 @@ using WinServicesTool.Models;
 using WinServicesTool.Utils;
 using WinServicesTool.Extensions;
 using WinServicesTool.Services;
+using System.Diagnostics;
 
 namespace WinServicesTool.Forms;
 
@@ -206,12 +207,65 @@ public sealed partial class FormMain : Form
             changeStart.Click += (_, _) => BtnChangeStartMode_Click(this, EventArgs.Empty);
             menu.Items.Add(changeStart);
 
+            // Go to registry (only for single selection)
+            if (selected.Count == 1)
+            {
+                var goToRegistry = new ToolStripMenuItem("Go to Registry") { Enabled = true };
+                goToRegistry.Click += (_, _) => OpenServiceInRegistry(selected[0].ServiceName);
+                menu.Items.Add(goToRegistry);
+            }
+
             // Show menu at cursor
             menu.Show(GridServs, new Point(e.X, e.Y));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error showing context menu");
+        }
+    }
+
+    private void OpenServiceInRegistry(string serviceName)
+    {
+        try
+        {
+            // Registry path for the service
+            var registryPath = $"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\{serviceName}";
+
+            AppendLog($"Attempting to open registry at: {registryPath}");
+
+            // Set the LastKey in the current user's registry so regedit opens at the correct location
+            using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Applets\Regedit"))
+            {
+                if (key != null)
+                {
+                    key.SetValue("LastKey", registryPath, RegistryValueKind.String);
+                }
+            }
+
+            // Small delay to ensure registry is written
+            Thread.Sleep(100);
+
+            // Now open regedit - it should automatically navigate to the LastKey
+            var regeditStart = new ProcessStartInfo
+            {
+                FileName = "regedit.exe",
+                UseShellExecute = true
+            };
+
+            var process = Process.Start(regeditStart);
+            if (process != null)
+            {
+                AppendLog($"Registry opened successfully for service: {serviceName} - PID: {process.Id}");
+            }
+            else
+            {
+                AppendLog($"Failed to start regedit process for service: {serviceName}", LogLevel.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"Failed to open registry for {serviceName}: {ex.Message}", LogLevel.Error);
+            _logger.LogError(ex, "Failed to open registry for service {ServiceName}", serviceName);
         }
     }
 
