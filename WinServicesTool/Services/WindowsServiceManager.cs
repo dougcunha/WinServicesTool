@@ -1,5 +1,6 @@
 using System.ServiceProcess;
 using Microsoft.Extensions.Logging;
+using WinServicesTool.Models;
 
 namespace WinServicesTool.Services;
 
@@ -22,13 +23,14 @@ public sealed class WindowsServiceManager : IWindowsServiceManager
             try
             {
                 return ServiceController.GetServices()
-                    .Select(serv => new Models.Service
+                    .Select(serv => new Service
                     {
+                        Path = ServicePathHelper.GetExecutablePath(serv.ServiceName),
                         DisplayName = serv.DisplayName,
                         ServiceName = serv.ServiceName,
                         Status = serv.Status,
                         StartMode = GetStartTypeSafe(serv),
-                        ServiceType = serv.ServiceType,
+                        ServiceType = ServiceTypeHelper.Describe((int)serv.ServiceType),
                         CanPauseAndContinue = serv.CanPauseAndContinue,
                         CanShutdown = serv.CanShutdown,
                         CanStop = serv.CanStop

@@ -17,6 +17,11 @@ namespace WinServicesTool.Models;
 public sealed partial class Service : INotifyPropertyChanged
 {
     /// <summary>
+    /// Gets or sets the path to the service executable, if known.
+    /// </summary>
+    public string? Path { get; set; }
+    
+    /// <summary>
     /// Gets or sets the friendly display name of the service as shown in the Services MMC.
     /// </summary>
     /// <value>The localized display name of the service.</value>
@@ -53,7 +58,7 @@ public sealed partial class Service : INotifyPropertyChanged
     /// A <see cref="ServiceType"/> value describing whether the service runs in its own process,
     /// as a shared process, as a driver, etc.
     /// </value>
-    public ServiceType ServiceType { get; set; }
+    public string? ServiceType { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the service supports pause and continue commands.

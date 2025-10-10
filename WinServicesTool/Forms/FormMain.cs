@@ -236,10 +236,7 @@ public sealed partial class FormMain : Form
             // Set the LastKey in the current user's registry so regedit opens at the correct location
             using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Applets\Regedit"))
             {
-                if (key != null)
-                {
-                    key.SetValue("LastKey", registryPath, RegistryValueKind.String);
-                }
+                key?.SetValue("LastKey", registryPath, RegistryValueKind.String);
             }
 
             // Small delay to ensure registry is written
@@ -454,6 +451,7 @@ public sealed partial class FormMain : Form
         var text = TxtFilter.Text.Trim();
 
         List<Service> working;
+        
         if (string.IsNullOrEmpty(text))
         {
             working = [.. _allServices];

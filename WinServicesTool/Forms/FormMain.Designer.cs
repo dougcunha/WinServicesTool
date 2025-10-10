@@ -47,14 +47,6 @@
             LblFilterStatus = new Label();
             LblStartMode = new Label();
             GridServs = new DataGridView();
-            ColDisplayName = new DataGridViewTextBoxColumn();
-            ColServiceName = new DataGridViewTextBoxColumn();
-            ColStatus = new DataGridViewTextBoxColumn();
-            ColStartMode = new DataGridViewTextBoxColumn();
-            ColServiceType = new DataGridViewTextBoxColumn();
-            ColCanPauseAndContinue = new DataGridViewCheckBoxColumn();
-            ColCanShutdown = new DataGridViewCheckBoxColumn();
-            ColCanStop = new DataGridViewCheckBoxColumn();
             serviceBindingSource = new BindingSource(components);
             TabSettings = new TabPage();
             PnlSettings = new TableLayoutPanel();
@@ -64,6 +56,15 @@
             ChkAutoWidth = new CheckBox();
             TextLog = new RichTextBox();
             SplitMain = new SplitContainer();
+            ColDisplayName = new DataGridViewTextBoxColumn();
+            ColServiceName = new DataGridViewTextBoxColumn();
+            ColStatus = new DataGridViewTextBoxColumn();
+            ColStartMode = new DataGridViewTextBoxColumn();
+            ColServiceType = new DataGridViewTextBoxColumn();
+            ColCanPauseAndContinue = new DataGridViewCheckBoxColumn();
+            ColCanShutdown = new DataGridViewCheckBoxColumn();
+            ColCanStop = new DataGridViewCheckBoxColumn();
+            Path = new DataGridViewTextBoxColumn();
             TabCtrl.SuspendLayout();
             TabMain.SuspendLayout();
             tableLayoutPanel2.SuspendLayout();
@@ -313,7 +314,7 @@
             GridServs.CellBorderStyle = DataGridViewCellBorderStyle.None;
             GridServs.ColumnHeadersHeight = 25;
             GridServs.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            GridServs.Columns.AddRange(new DataGridViewColumn[] { ColDisplayName, ColServiceName, ColStatus, ColStartMode, ColServiceType, ColCanPauseAndContinue, ColCanShutdown, ColCanStop });
+            GridServs.Columns.AddRange(new DataGridViewColumn[] { ColDisplayName, ColServiceName, ColStatus, ColStartMode, ColServiceType, ColCanPauseAndContinue, ColCanShutdown, ColCanStop, Path });
             GridServs.DataSource = serviceBindingSource;
             GridServs.Dock = DockStyle.Fill;
             GridServs.Location = new Point(3, 93);
@@ -323,62 +324,6 @@
             GridServs.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             GridServs.Size = new Size(1068, 431);
             GridServs.TabIndex = 0;
-            // 
-            // ColDisplayName
-            // 
-            ColDisplayName.DataPropertyName = "DisplayName";
-            ColDisplayName.HeaderText = "Display Name";
-            ColDisplayName.Name = "ColDisplayName";
-            ColDisplayName.ReadOnly = true;
-            // 
-            // ColServiceName
-            // 
-            ColServiceName.DataPropertyName = "ServiceName";
-            ColServiceName.HeaderText = "Service Name";
-            ColServiceName.Name = "ColServiceName";
-            ColServiceName.ReadOnly = true;
-            // 
-            // ColStatus
-            // 
-            ColStatus.DataPropertyName = "Status";
-            ColStatus.HeaderText = "Status";
-            ColStatus.Name = "ColStatus";
-            ColStatus.ReadOnly = true;
-            // 
-            // ColStartMode
-            // 
-            ColStartMode.DataPropertyName = "StartMode";
-            ColStartMode.HeaderText = "Start Mode";
-            ColStartMode.Name = "ColStartMode";
-            ColStartMode.ReadOnly = true;
-            // 
-            // ColServiceType
-            // 
-            ColServiceType.DataPropertyName = "ServiceType";
-            ColServiceType.HeaderText = "Service Type";
-            ColServiceType.Name = "ColServiceType";
-            ColServiceType.ReadOnly = true;
-            // 
-            // ColCanPauseAndContinue
-            // 
-            ColCanPauseAndContinue.DataPropertyName = "CanPauseAndContinue";
-            ColCanPauseAndContinue.HeaderText = "Can Pause & Continue";
-            ColCanPauseAndContinue.Name = "ColCanPauseAndContinue";
-            ColCanPauseAndContinue.ReadOnly = true;
-            // 
-            // ColCanShutdown
-            // 
-            ColCanShutdown.DataPropertyName = "CanShutdown";
-            ColCanShutdown.HeaderText = "Can Shutdown";
-            ColCanShutdown.Name = "ColCanShutdown";
-            ColCanShutdown.ReadOnly = true;
-            // 
-            // ColCanStop
-            // 
-            ColCanStop.DataPropertyName = "CanStop";
-            ColCanStop.HeaderText = "Can Stop";
-            ColCanStop.Name = "ColCanStop";
-            ColCanStop.ReadOnly = true;
             // 
             // serviceBindingSource
             // 
@@ -491,6 +436,69 @@
             SplitMain.SplitterDistance = 561;
             SplitMain.TabIndex = 2;
             // 
+            // ColDisplayName
+            // 
+            ColDisplayName.DataPropertyName = "DisplayName";
+            ColDisplayName.HeaderText = "Display Name";
+            ColDisplayName.Name = "ColDisplayName";
+            ColDisplayName.ReadOnly = true;
+            // 
+            // ColServiceName
+            // 
+            ColServiceName.DataPropertyName = "ServiceName";
+            ColServiceName.HeaderText = "Service Name";
+            ColServiceName.Name = "ColServiceName";
+            ColServiceName.ReadOnly = true;
+            // 
+            // ColStatus
+            // 
+            ColStatus.DataPropertyName = "Status";
+            ColStatus.HeaderText = "Status";
+            ColStatus.Name = "ColStatus";
+            ColStatus.ReadOnly = true;
+            // 
+            // ColStartMode
+            // 
+            ColStartMode.DataPropertyName = "StartMode";
+            ColStartMode.HeaderText = "Start Mode";
+            ColStartMode.Name = "ColStartMode";
+            ColStartMode.ReadOnly = true;
+            // 
+            // ColServiceType
+            // 
+            ColServiceType.DataPropertyName = "ServiceType";
+            ColServiceType.HeaderText = "Service Type";
+            ColServiceType.Name = "ColServiceType";
+            ColServiceType.ReadOnly = true;
+            // 
+            // ColCanPauseAndContinue
+            // 
+            ColCanPauseAndContinue.DataPropertyName = "CanPauseAndContinue";
+            ColCanPauseAndContinue.HeaderText = "Can Pause & Continue";
+            ColCanPauseAndContinue.Name = "ColCanPauseAndContinue";
+            ColCanPauseAndContinue.ReadOnly = true;
+            // 
+            // ColCanShutdown
+            // 
+            ColCanShutdown.DataPropertyName = "CanShutdown";
+            ColCanShutdown.HeaderText = "Can Shutdown";
+            ColCanShutdown.Name = "ColCanShutdown";
+            ColCanShutdown.ReadOnly = true;
+            // 
+            // ColCanStop
+            // 
+            ColCanStop.DataPropertyName = "CanStop";
+            ColCanStop.HeaderText = "Can Stop";
+            ColCanStop.Name = "ColCanStop";
+            ColCanStop.ReadOnly = true;
+            // 
+            // Path
+            // 
+            Path.DataPropertyName = "Path";
+            Path.HeaderText = "Path";
+            Path.Name = "Path";
+            Path.ReadOnly = true;
+            // 
             // FormMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -545,6 +553,11 @@
         private SplitContainer SplitMain;
         private Label LblFilterStatus;
         private Label LblStartMode;
+        private TableLayoutPanel PnlSettings;
+        private GroupBox GrpSettingsGrid;
+        private CheckBox ChkAutoWidth;
+        private GroupBox GrpStarting;
+        private CheckBox ChkStartAsAdm;
         private DataGridViewTextBoxColumn ColDisplayName;
         private DataGridViewTextBoxColumn ColServiceName;
         private DataGridViewTextBoxColumn ColStatus;
@@ -553,10 +566,6 @@
         private DataGridViewCheckBoxColumn ColCanPauseAndContinue;
         private DataGridViewCheckBoxColumn ColCanShutdown;
         private DataGridViewCheckBoxColumn ColCanStop;
-        private TableLayoutPanel PnlSettings;
-        private GroupBox GrpSettingsGrid;
-        private CheckBox ChkAutoWidth;
-        private GroupBox GrpStarting;
-        private CheckBox ChkStartAsAdm;
+        private DataGridViewTextBoxColumn Path;
     }
 }
