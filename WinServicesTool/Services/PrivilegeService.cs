@@ -4,12 +4,9 @@ using Microsoft.Extensions.Logging;
 
 namespace WinServicesTool.Services;
 
-public sealed class PrivilegeService : IPrivilegeService
+public sealed class PrivilegeService(ILogger<PrivilegeService> logger) : IPrivilegeService
 {
-    private readonly ILogger<PrivilegeService> _logger;
-
-    public PrivilegeService(ILogger<PrivilegeService> logger)
-        => _logger = logger;
+    private readonly ILogger<PrivilegeService> _logger = logger;
 
     public bool IsAdministrator()
     {

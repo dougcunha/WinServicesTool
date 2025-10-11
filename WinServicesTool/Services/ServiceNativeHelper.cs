@@ -65,7 +65,7 @@ public sealed class ServicePathHelper : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        IntPtr service = IntPtr.Zero;
+        var service = IntPtr.Zero;
 
         try
         {
@@ -79,7 +79,7 @@ public sealed class ServicePathHelper : IDisposable
             if (Marshal.GetLastWin32Error() != ERROR_INSUFFICIENT_BUFFER)
                 return null;
 
-            IntPtr buffer = Marshal.AllocHGlobal((int)bytesNeeded);
+            var buffer = Marshal.AllocHGlobal((int)bytesNeeded);
 
             try
             {

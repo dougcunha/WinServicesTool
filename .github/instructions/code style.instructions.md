@@ -65,5 +65,8 @@ Additionally, if an argument uses a lambda expression or a nested call with its 
 - Write always in english.
 - Keep a section dedicate to give credits to third-party libraries used in the project.
 
+## For keeping the code formatted:
+- Use `dotnet format` tool to keep the code formatted after each change.
+
 
 

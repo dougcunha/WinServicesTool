@@ -21,8 +21,8 @@ public sealed class ServiceOperationOrchestratorAdditionalTests
 
         var services = new List<Service>
         {
-            new Service { ServiceName = "s1", DisplayName = "S1", Status = System.ServiceProcess.ServiceControllerStatus.Running },
-            new Service { ServiceName = "s2", DisplayName = "S2", Status = System.ServiceProcess.ServiceControllerStatus.Running }
+            new() { ServiceName = "s1", DisplayName = "S1", Status = System.ServiceProcess.ServiceControllerStatus.Running },
+            new() { ServiceName = "s2", DisplayName = "S2", Status = System.ServiceProcess.ServiceControllerStatus.Running }
         };
 
         var results = await orchestrator.RestartServicesAsync(services);
@@ -41,8 +41,8 @@ public sealed class ServiceOperationOrchestratorAdditionalTests
 
         var services = new List<Service>
         {
-            new Service { ServiceName = "s1", DisplayName = "S1", Status = System.ServiceProcess.ServiceControllerStatus.Stopped },
-            new Service { ServiceName = "s2", DisplayName = "S2", Status = System.ServiceProcess.ServiceControllerStatus.Stopped }
+            new() { ServiceName = "s1", DisplayName = "S1", Status = System.ServiceProcess.ServiceControllerStatus.Stopped },
+            new() { ServiceName = "s2", DisplayName = "S2", Status = System.ServiceProcess.ServiceControllerStatus.Stopped }
         };
 
         var results = await orchestrator.StartServicesAsync(services);

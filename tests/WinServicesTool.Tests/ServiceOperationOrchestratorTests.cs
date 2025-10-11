@@ -22,8 +22,8 @@ public sealed class ServiceOperationOrchestratorTests
 
         var services = new List<Service>
         {
-            new Service { ServiceName = "ok", DisplayName = "OK", Status = System.ServiceProcess.ServiceControllerStatus.Stopped },
-            new Service { ServiceName = "bad", DisplayName = "Bad", Status = System.ServiceProcess.ServiceControllerStatus.Stopped }
+            new() { ServiceName = "ok", DisplayName = "OK", Status = System.ServiceProcess.ServiceControllerStatus.Stopped },
+            new() { ServiceName = "bad", DisplayName = "Bad", Status = System.ServiceProcess.ServiceControllerStatus.Stopped }
         };
 
         // Act

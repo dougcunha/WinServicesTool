@@ -6,16 +6,10 @@ namespace WinServicesTool.Services;
 /// <summary>
 /// Default implementation of <see cref="IServiceOperationOrchestrator"/>.
 /// </summary>
-public sealed class ServiceOperationOrchestrator : IServiceOperationOrchestrator
+public sealed class ServiceOperationOrchestrator(IWindowsServiceManager svcManager, ILogger<ServiceOperationOrchestrator> logger) : IServiceOperationOrchestrator
 {
-    private readonly IWindowsServiceManager _svcManager;
-    private readonly ILogger<ServiceOperationOrchestrator> _logger;
-
-    public ServiceOperationOrchestrator(IWindowsServiceManager svcManager, ILogger<ServiceOperationOrchestrator> logger)
-    {
-        _svcManager = svcManager;
-        _logger = logger;
-    }
+    private readonly IWindowsServiceManager _svcManager = svcManager;
+    private readonly ILogger<ServiceOperationOrchestrator> _logger = logger;
 
     public async Task<Dictionary<string, bool>> StartServicesAsync(IEnumerable<Service> services, CancellationToken cancellationToken = default)
     {

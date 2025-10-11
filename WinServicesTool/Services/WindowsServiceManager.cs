@@ -8,16 +8,10 @@ namespace WinServicesTool.Services;
 /// <summary>
 /// Default implementation of <see cref="IWindowsServiceManager"/> using <see cref="ServiceController"/>.
 /// </summary>
-public sealed class WindowsServiceManager : IWindowsServiceManager
+public sealed class WindowsServiceManager(ILogger<WindowsServiceManager> logger, AppConfig appConfig) : IWindowsServiceManager
 {
-    private readonly ILogger<WindowsServiceManager> _logger;
-    private readonly AppConfig _appConfig;
-
-    public WindowsServiceManager(ILogger<WindowsServiceManager> logger, AppConfig appConfig)
-    {
-        _logger = logger;
-        _appConfig = appConfig;
-    }
+    private readonly ILogger<WindowsServiceManager> _logger = logger;
+    private readonly AppConfig _appConfig = appConfig;
 
     public Task<List<Service>> GetServicesAsync()
     {

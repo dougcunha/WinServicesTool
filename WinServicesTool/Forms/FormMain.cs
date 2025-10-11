@@ -1,12 +1,12 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.ServiceProcess;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
-using WinServicesTool.Models;
-using WinServicesTool.Utils;
 using WinServicesTool.Extensions;
+using WinServicesTool.Models;
 using WinServicesTool.Services;
-using System.Diagnostics;
+using WinServicesTool.Utils;
 
 namespace WinServicesTool.Forms;
 
@@ -28,6 +28,13 @@ public sealed partial class FormMain : Form
     private readonly IServiceOperationOrchestrator _orchestrator;
     private readonly IRegistryService _registryService;
     private readonly IRegistryEditor _registryEditor;
+
+    /// <summary>
+    /// Delegate used to open Regedit for a given registry path. Tests can replace this delegate
+    /// to avoid starting external processes.
+    /// </summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    internal Action<string>? RegeditOpener { get; set; }
     private CancellationTokenSource? _currentOperationCts;
     private bool _shouldSaveOnClose;
 
@@ -301,7 +308,7 @@ public sealed partial class FormMain : Form
         }
     }
 
-    private void OpenServiceInRegistry(string serviceName)
+    internal void OpenServiceInRegistry(string serviceName)
     {
         try
         {
@@ -312,8 +319,16 @@ public sealed partial class FormMain : Form
 
             try
             {
-                _registryService.SetRegeditLastKey(registryPath);
-                AppendLog($"Requested Regedit to open at: {registryPath}");
+                if (RegeditOpener != null)
+                {
+                    RegeditOpener(registryPath);
+                    AppendLog($"Requested Regedit to open at: {registryPath} (via delegate)");
+                }
+                else
+                {
+                    _registryService.SetRegeditLastKey(registryPath);
+                    AppendLog($"Requested Regedit to open at: {registryPath}");
+                }
             }
             catch (Exception ex)
             {
@@ -582,11 +597,11 @@ public sealed partial class FormMain : Form
         {
             if (CbFilterStatus.SelectedItem is string statusSel && !string.Equals(statusSel, "All", StringComparison.OrdinalIgnoreCase))
                 if (Enum.TryParse<ServiceControllerStatus>(statusSel, out var parsedStatus))
-                    working = working.Where(s => s.Status == parsedStatus).ToList();
+                    working = [.. working.Where(s => s.Status == parsedStatus)];
 
             if (CbFilterStartMode.SelectedItem is string startSel && !string.Equals(startSel, "All", StringComparison.OrdinalIgnoreCase))
                 if (Enum.TryParse<ServiceStartMode>(startSel, out var parsedStart))
-                    working = working.Where(s => s.StartMode == parsedStart).ToList();
+                    working = [.. working.Where(s => s.StartMode == parsedStart)];
         }
         catch
         {
@@ -600,8 +615,8 @@ public sealed partial class FormMain : Form
 
             if (prop != null)
                 working = _sortOrder == SortOrder.Ascending
-                ? working.OrderBy(s => prop.GetValue(s, null)).ToList()
-                : working.OrderByDescending(s => prop.GetValue(s, null)).ToList();
+                ? [.. working.OrderBy(s => prop.GetValue(s, null))]
+                : [.. working.OrderByDescending(s => prop.GetValue(s, null))];
         }
 
         // ChangeStartMode helper methods are defined after this method
@@ -764,21 +779,13 @@ public sealed partial class FormMain : Form
             // Color the entire row by status
             var row = GridServs.Rows[e.RowIndex];
 
-            switch (item.Status)
+            row.DefaultCellStyle.BackColor = item.Status switch
             {
-                case ServiceControllerStatus.Running:
-                    row.DefaultCellStyle.BackColor = Color.FromArgb(230, 255, 230); // light green
-                    break;
-                case ServiceControllerStatus.Stopped:
-                    row.DefaultCellStyle.BackColor = Color.FromArgb(255, 230, 230); // light red
-                    break;
-                case ServiceControllerStatus.Paused:
-                    row.DefaultCellStyle.BackColor = Color.FromArgb(255, 255, 230); // light yellow
-                    break;
-                default:
-                    row.DefaultCellStyle.BackColor = Color.Empty;
-                    break;
-            }
+                ServiceControllerStatus.Running => Color.FromArgb(230, 255, 230),// light green
+                ServiceControllerStatus.Stopped => Color.FromArgb(255, 230, 230),// light red
+                ServiceControllerStatus.Paused => Color.FromArgb(255, 255, 230),// light yellow
+                _ => Color.Empty,
+            };
 
             // For the Status column, prefix with an emoji
             var col = GridServs.Columns[e.ColumnIndex];
