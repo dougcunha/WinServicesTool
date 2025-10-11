@@ -25,14 +25,17 @@ public sealed partial class FormMain : Form
     private readonly ILogger<FormMain> _logger;
     private readonly IWindowsServiceManager _serviceManager;
     private readonly IPrivilegeService _privilegeService;
+    private readonly IServiceOperationOrchestrator _orchestrator;
+    private CancellationTokenSource? _currentOperationCts;
 
-    public FormMain(ILogger<FormMain> logger, IWindowsServiceManager serviceManager, IPrivilegeService privilegeService, AppConfig appConfig)
+    public FormMain(ILogger<FormMain> logger, IWindowsServiceManager serviceManager, IPrivilegeService privilegeService, IServiceOperationOrchestrator orchestrator, AppConfig appConfig)
     {
         InitializeComponent();
         _appConfig = appConfig;
         _logger = logger;
         _serviceManager = serviceManager;
         _privilegeService = privilegeService;
+        _orchestrator = orchestrator;
         _appConfig.PropertyChanged += AppConfigChanged;
         FormClosing += FormPrincipal_FormClosing;
         GridServs.ColumnWidthChanged += GridServs_ColumnWidthChanged;
@@ -162,6 +165,25 @@ public sealed partial class FormMain : Form
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error evaluating selection state");
+        }
+    }
+
+    private void BtnCancel_Click(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (_currentOperationCts == null)
+            {
+                AppendLog("No operation to cancel", LogLevel.Information);
+                return;
+            }
+
+            AppendLog("Cancelling current operation...");
+            _currentOperationCts.Cancel();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while cancelling operation");
         }
     }
 
@@ -816,21 +838,26 @@ public sealed partial class FormMain : Form
         BtnStart.Enabled = false;
         AppendLog($"Starting {selectedServices.Count} service(s)...");
 
+        _currentOperationCts?.Cancel();
+        _currentOperationCts?.Dispose();
+        _currentOperationCts = new CancellationTokenSource();
+
         try
         {
+            var results = await _orchestrator.StartServicesAsync(selectedServices, _currentOperationCts.Token);
+
             foreach (var serv in selectedServices)
             {
-                try
+                if (results.TryGetValue(serv.ServiceName, out var ok) && ok)
                 {
-                    await _serviceManager.StartServiceAsync(serv.ServiceName);
                     serv.Status = ServiceControllerStatus.Running;
                     AppendLog($"Started: {serv.ServiceName} ({serv.DisplayName})");
                     _logger.LogInformation("Started service {ServiceName}", serv.ServiceName);
                 }
-                catch (Exception ex)
+                else
                 {
-                    AppendLog($"Failed to start {serv.ServiceName}: {ex.Message}", LogLevel.Error);
-                    _logger.LogError(ex, "Failed to start service {ServiceName}", serv.ServiceName);
+                    AppendLog($"Failed to start {serv.ServiceName}", LogLevel.Error);
+                    _logger.LogError("Failed to start service {ServiceName}", serv.ServiceName);
                 }
             }
 
@@ -839,6 +866,8 @@ public sealed partial class FormMain : Form
         finally
         {
             BtnStart.Enabled = true;
+            _currentOperationCts?.Dispose();
+            _currentOperationCts = null;
         }
     }
 
@@ -863,21 +892,27 @@ public sealed partial class FormMain : Form
 
         BtnStop.Enabled = false;
         AppendLog($"Stopping {selectedServices.Count} service(s)...");
+
+        _currentOperationCts?.Cancel();
+        _currentOperationCts?.Dispose();
+        _currentOperationCts = new CancellationTokenSource();
+
         try
         {
+            var results = await _orchestrator.StopServicesAsync(selectedServices, _currentOperationCts.Token);
+
             foreach (var serv in selectedServices)
             {
-                try
+                if (results.TryGetValue(serv.ServiceName, out var ok) && ok)
                 {
-                    await _serviceManager.StopServiceAsync(serv.ServiceName);
                     serv.Status = ServiceControllerStatus.Stopped;
                     AppendLog($"Stopped: {serv.ServiceName} ({serv.DisplayName})");
                     _logger.LogInformation("Stopped service {ServiceName}", serv.ServiceName);
                 }
-                catch (Exception ex)
+                else
                 {
-                    AppendLog($"Failed to stop {serv.ServiceName}: {ex.Message}", LogLevel.Error);
-                    _logger.LogError(ex, "Failed to stop service {ServiceName}", serv.ServiceName);
+                    AppendLog($"Failed to stop {serv.ServiceName}", LogLevel.Error);
+                    _logger.LogError("Failed to stop service {ServiceName}", serv.ServiceName);
                 }
             }
 
@@ -886,6 +921,8 @@ public sealed partial class FormMain : Form
         finally
         {
             BtnStop.Enabled = true;
+            _currentOperationCts?.Dispose();
+            _currentOperationCts = null;
         }
     }
 
@@ -910,22 +947,25 @@ public sealed partial class FormMain : Form
         BtnRestart.Enabled = false;
         AppendLog($"Restarting {sel.Count} service(s)...");
 
+        _currentOperationCts?.Cancel();
+        _currentOperationCts?.Dispose();
+        _currentOperationCts = new CancellationTokenSource();
+
         try
         {
+            var results = await _orchestrator.RestartServicesAsync(sel, _currentOperationCts.Token);
+
             foreach (var s in sel)
             {
-                try
+                if (results.TryGetValue(s.ServiceName, out var ok) && ok)
                 {
-                    // Stop then start using the service manager to centralize logic
-                    await _serviceManager.StopServiceAsync(s.ServiceName);
-                    await _serviceManager.StartServiceAsync(s.ServiceName);
                     AppendLog($"Restarted: {s.ServiceName} ({s.DisplayName})");
                     _logger.LogInformation("Restarted service {ServiceName}", s.ServiceName);
                 }
-                catch (Exception ex)
+                else
                 {
-                    AppendLog($"Failed to restart {s.ServiceName}: {ex.Message}", LogLevel.Error);
-                    _logger.LogError(ex, "Failed to restart service {ServiceName}", s.ServiceName);
+                    AppendLog($"Failed to restart {s.ServiceName}", LogLevel.Error);
+                    _logger.LogError("Failed to restart service {ServiceName}", s.ServiceName);
                 }
             }
 
@@ -934,6 +974,8 @@ public sealed partial class FormMain : Form
         finally
         {
             BtnRestart.Enabled = true;
+            _currentOperationCts?.Dispose();
+            _currentOperationCts = null;
         }
     }
 

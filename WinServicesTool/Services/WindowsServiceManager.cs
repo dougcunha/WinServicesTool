@@ -71,30 +71,49 @@ public sealed class WindowsServiceManager : IWindowsServiceManager
         });
     }
 
-    public Task StartServiceAsync(string serviceName)
+    public Task StartServiceAsync(string serviceName, CancellationToken cancellationToken = default)
     {
         return Task.Run(() =>
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             using var sc = new ServiceController(serviceName);
             if (sc.Status == ServiceControllerStatus.Stopped)
             {
                 sc.Start();
-                sc.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(10));
+                // Wait loop with cancellation checks
+                var timeout = TimeSpan.FromSeconds(10);
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                while (sc.Status != ServiceControllerStatus.Running && sw.Elapsed < timeout)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    System.Threading.Thread.Sleep(200);
+                    sc.Refresh();
+                }
             }
-        });
+        }, cancellationToken);
     }
 
-    public Task StopServiceAsync(string serviceName)
+    public Task StopServiceAsync(string serviceName, CancellationToken cancellationToken = default)
     {
         return Task.Run(() =>
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             using var sc = new ServiceController(serviceName);
             if (sc.Status is ServiceControllerStatus.Running or ServiceControllerStatus.Paused)
             {
                 sc.Stop();
-                sc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(10));
+                var timeout = TimeSpan.FromSeconds(10);
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                while (sc.Status != ServiceControllerStatus.Stopped && sw.Elapsed < timeout)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    System.Threading.Thread.Sleep(200);
+                    sc.Refresh();
+                }
             }
-        });
+        }, cancellationToken);
     }
 
     private static ServiceStartMode GetStartTypeSafe(ServiceController serv)

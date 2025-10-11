@@ -17,17 +17,24 @@ public sealed class ServiceOperationOrchestrator : IServiceOperationOrchestrator
         _logger = logger;
     }
 
-    public async Task<Dictionary<string, bool>> StartServicesAsync(IEnumerable<Service> services)
+    public async Task<Dictionary<string, bool>> StartServicesAsync(IEnumerable<Service> services, CancellationToken cancellationToken = default)
     {
         var results = new Dictionary<string, bool>();
 
         foreach (var s in services)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
-                await _svcManager.StartServiceAsync(s.ServiceName);
+                await _svcManager.StartServiceAsync(s.ServiceName, cancellationToken);
                 results[s.ServiceName] = true;
                 _logger.LogInformation("Started service {ServiceName}", s.ServiceName);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("Start cancelled for {ServiceName}", s.ServiceName);
+                results[s.ServiceName] = false;
             }
             catch (Exception ex)
             {
@@ -39,17 +46,24 @@ public sealed class ServiceOperationOrchestrator : IServiceOperationOrchestrator
         return results;
     }
 
-    public async Task<Dictionary<string, bool>> StopServicesAsync(IEnumerable<Service> services)
+    public async Task<Dictionary<string, bool>> StopServicesAsync(IEnumerable<Service> services, CancellationToken cancellationToken = default)
     {
         var results = new Dictionary<string, bool>();
 
         foreach (var s in services)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
-                await _svcManager.StopServiceAsync(s.ServiceName);
+                await _svcManager.StopServiceAsync(s.ServiceName, cancellationToken);
                 results[s.ServiceName] = true;
                 _logger.LogInformation("Stopped service {ServiceName}", s.ServiceName);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("Stop cancelled for {ServiceName}", s.ServiceName);
+                results[s.ServiceName] = false;
             }
             catch (Exception ex)
             {
@@ -61,18 +75,25 @@ public sealed class ServiceOperationOrchestrator : IServiceOperationOrchestrator
         return results;
     }
 
-    public async Task<Dictionary<string, bool>> RestartServicesAsync(IEnumerable<Service> services)
+    public async Task<Dictionary<string, bool>> RestartServicesAsync(IEnumerable<Service> services, CancellationToken cancellationToken = default)
     {
         var results = new Dictionary<string, bool>();
 
         foreach (var s in services)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
-                await _svcManager.StopServiceAsync(s.ServiceName);
-                await _svcManager.StartServiceAsync(s.ServiceName);
+                await _svcManager.StopServiceAsync(s.ServiceName, cancellationToken);
+                await _svcManager.StartServiceAsync(s.ServiceName, cancellationToken);
                 results[s.ServiceName] = true;
                 _logger.LogInformation("Restarted service {ServiceName}", s.ServiceName);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("Restart cancelled for {ServiceName}", s.ServiceName);
+                results[s.ServiceName] = false;
             }
             catch (Exception ex)
             {

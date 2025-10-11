@@ -136,6 +136,7 @@
             tableLayoutPanel3.Controls.Add(BtnStop, 2, 0);
             tableLayoutPanel3.Controls.Add(BtnRestart, 3, 0);
             tableLayoutPanel3.Controls.Add(BtnChangeStartMode, 4, 0);
+            tableLayoutPanel3.Controls.Add(BtnCancel, 5, 0);
             tableLayoutPanel3.Dock = DockStyle.Fill;
             tableLayoutPanel3.Location = new Point(3, 3);
             tableLayoutPanel3.Name = "tableLayoutPanel3";
@@ -225,6 +226,21 @@
             BtnChangeStartMode.TextImageRelation = TextImageRelation.TextBeforeImage;
             BtnChangeStartMode.UseVisualStyleBackColor = true;
             BtnChangeStartMode.Click += BtnChangeStartMode_Click;
+            // 
+            // BtnCancel
+            // 
+            BtnCancel = new Button();
+            BtnCancel.Dock = DockStyle.Fill;
+            BtnCancel.ImageKey = "";
+            BtnCancel.ImageList = Imgs;
+            BtnCancel.Location = new Point(503, 3);
+            BtnCancel.Name = "BtnCancel";
+            BtnCancel.Size = new Size(94, 38);
+            BtnCancel.TabIndex = 7;
+            BtnCancel.Text = "Cancel";
+            BtnCancel.TextImageRelation = TextImageRelation.TextBeforeImage;
+            BtnCancel.UseVisualStyleBackColor = true;
+            BtnCancel.Click += BtnCancel_Click;
             // 
             // tableLayoutPanelFilter
             // 
@@ -581,6 +597,7 @@
         private DataGridViewCheckBoxColumn ColCanPauseAndContinue;
         private DataGridViewCheckBoxColumn ColCanShutdown;
         private DataGridViewCheckBoxColumn ColCanStop;
-        private DataGridViewTextBoxColumn ColPath;
+    private DataGridViewTextBoxColumn ColPath;
+    private Button BtnCancel;
     }
 }
