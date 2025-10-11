@@ -9,6 +9,7 @@ var services = new ServiceCollection();
 services.AddSingleton<FormMain>();
 services.AddSingleton<IWindowsServiceManager, WindowsServiceManager>();
 services.AddSingleton<IPrivilegeService, PrivilegeService>();
+services.AddSingleton<IServiceOperationOrchestrator, ServiceOperationOrchestrator>();
 services.AddSingleton<AppConfig>(_ => AppConfig.Load());
 
 // Add NLog

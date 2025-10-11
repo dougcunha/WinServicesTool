@@ -1,3 +1,6 @@
 <Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/WinServicesTool.Tests/WinServicesTool.Tests.csproj" />
+  </Folder>
   <Project Path="WinServicesTool/WinServicesTool.csproj" />
 </Solution>

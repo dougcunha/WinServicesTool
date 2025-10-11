@@ -51,6 +51,8 @@ Additionally, if an argument uses a lambda expression or a nested call with its 
 - Never try to mock non virtual classes
 - If you can't mock a class, use a real instance of it or extract it to an interface.
 - Use verbatim strings for file paths and other strings that require escaping.
+- Avoid using reflection to access private members, prefer to test public API.
+- Do not add unnecessary usings in test files. Use implicit usings when possible.
 
 ## For writing documentation:
 
