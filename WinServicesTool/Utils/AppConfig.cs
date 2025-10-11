@@ -20,7 +20,39 @@ public sealed partial class AppConfig : INotifyPropertyChanged
     /// </summary>
     public bool AlwaysStartsAsAdministrator { get; set; }
 
-    private static readonly string _appFolder = Environment.CurrentDirectory;
+    /// <summary>
+    /// Saved left position of the main window.
+    /// </summary>
+    public int WindowLeft { get; set; }
+
+    /// <summary>
+    /// Saved top position of the main window.
+    /// </summary>
+    public int WindowTop { get; set; }
+
+    /// <summary>
+    /// Saved width of the main window.
+    /// </summary>
+    public int WindowWidth { get; set; }
+
+    /// <summary>
+    /// Saved height of the main window.
+    /// </summary>
+    public int WindowHeight { get; set; }
+
+    /// <summary>
+    /// Saved window state (Normal, Minimized, Maximized).
+    /// </summary>
+    public string? WindowState { get; set; }
+
+    /// <summary>
+    /// Saved SplitContainer.SplitterDistance for the main split (log/grid).
+    /// </summary>
+    public int SplitterDistance { get; set; }
+
+    // Use the application's base directory (where the executable lives) so load/save
+    // happen from the same location regardless of current working directory.
+    private static readonly string _appFolder = AppContext.BaseDirectory;
 
     private static readonly string _filePath = Path.Combine(_appFolder, "app_config.json");
 

@@ -27,6 +27,7 @@ public sealed partial class FormMain : Form
     private readonly IPrivilegeService _privilegeService;
     private readonly IServiceOperationOrchestrator _orchestrator;
     private CancellationTokenSource? _currentOperationCts;
+    private bool _shouldSaveOnClose;
 
     public FormMain(ILogger<FormMain> logger, IWindowsServiceManager serviceManager, IPrivilegeService privilegeService, IServiceOperationOrchestrator orchestrator, AppConfig appConfig)
     {
@@ -50,6 +51,7 @@ public sealed partial class FormMain : Form
         CbFilterStatus.SelectedIndexChanged += (_, _) => ApplyFilterAndSort();
         CbFilterStartMode.SelectedIndexChanged += (_, _) => ApplyFilterAndSort();
         Load += FormPrincipal_Load;
+        Shown += FormPrincipal_Shown;
 
         ChkAutoWidth.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.AutoWidthColumns), false, DataSourceUpdateMode.OnPropertyChanged);
         ChkShowPath.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.ShowPathColumn), false, DataSourceUpdateMode.OnPropertyChanged);
@@ -66,6 +68,7 @@ public sealed partial class FormMain : Form
         // On startup, if we are not running elevated, ask the user to restart as admin
         if (_privilegeService.IsAdministrator())
         {
+            _shouldSaveOnClose = true;
             BtnLoad_Click(null, EventArgs.Empty);
 
             return;
@@ -81,9 +84,7 @@ public sealed partial class FormMain : Form
 
         // Handle dynamic column visibility changes
         if (e.PropertyName == nameof(AppConfig.ShowPathColumn))
-        {
             _ = TogglePathColumnVisibilityAsync();
-        }
     }
 
     // Designer-based filter controls are wired in constructor
@@ -91,10 +92,48 @@ public sealed partial class FormMain : Form
     private async void FormPrincipal_Load(object? sender, EventArgs e)
     {
         if (!_privilegeService.IsAdministrator())
+        {
+            _shouldSaveOnClose = false;
             Close();
+        }
 
+        // Defer restoring window bounds/state and splitter to Shown so layout is ready
         await TogglePathColumnVisibilityAsync();
-        ApplyColumnSizing();
+    }
+
+    private void FormPrincipal_Shown(object? sender, EventArgs e)
+    {
+        try
+        {
+            // Restore window position/size/state from config
+            if (_appConfig.WindowWidth > 0 && _appConfig.WindowHeight > 0)
+            {
+                StartPosition = FormStartPosition.Manual;
+                Bounds = new Rectangle(_appConfig.WindowLeft, _appConfig.WindowTop, _appConfig.WindowWidth, _appConfig.WindowHeight);
+            }
+
+            if (!string.IsNullOrEmpty(_appConfig.WindowState) && Enum.TryParse<FormWindowState>(_appConfig.WindowState, out var ws))
+                WindowState = ws;
+
+            // Restore splitter distance if available
+            if (_appConfig.SplitterDistance > 0)
+            {
+                try
+                {
+                    SplitMain.SplitterDistance = _appConfig.SplitterDistance;
+                }
+                catch
+                {
+                    // ignore invalid splitter values
+                }
+            }
+
+            ApplyColumnSizing();
+        }
+        catch
+        {
+            // ignore restore failures
+        }
     }
 
     private void UpdateFilterLists()
@@ -109,9 +148,7 @@ public sealed partial class FormMain : Form
             CbFilterStatus.Items.Add("All");
 
             foreach (var st in _allServices.Select(s => s.Status).Distinct().Order())
-            {
                 CbFilterStatus.Items.Add(st.ToString());
-            }
 
             if (!string.IsNullOrEmpty(prevStatus) && CbFilterStatus.Items.Contains(prevStatus))
                 CbFilterStatus.SelectedItem = prevStatus;
@@ -122,9 +159,7 @@ public sealed partial class FormMain : Form
             CbFilterStartMode.Items.Add("All");
 
             foreach (var sm in _allServices.Select(static s => s.StartMode).Distinct().Order())
-            {
                 CbFilterStartMode.Items.Add(sm.ToString());
-            }
 
             if (!string.IsNullOrEmpty(prevStart) && CbFilterStartMode.Items.Contains(prevStart))
                 CbFilterStartMode.SelectedItem = prevStart;
@@ -272,9 +307,9 @@ public sealed partial class FormMain : Form
             AppendLog($"Attempting to open registry at: {registryPath}");
 
             // Set the LastKey in the current user's registry so regedit opens at the correct location
-            using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Applets\Regedit"))
+            using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Applets\Regedit"))
             {
-                key?.SetValue("LastKey", registryPath, RegistryValueKind.String);
+                key.SetValue("LastKey", registryPath, RegistryValueKind.String);
             }
 
             // Small delay to ensure registry is written
@@ -288,14 +323,11 @@ public sealed partial class FormMain : Form
             };
 
             var process = Process.Start(regeditStart);
+
             if (process != null)
-            {
                 AppendLog($"Registry opened successfully for service: {serviceName} - PID: {process.Id}");
-            }
             else
-            {
                 AppendLog($"Failed to start regedit process for service: {serviceName}", LogLevel.Warning);
-            }
         }
         catch (Exception ex)
         {
@@ -421,17 +453,11 @@ public sealed partial class FormMain : Form
             // Configure column sizing BEFORE populating data
             // This is critical for Fill mode to work correctly
             if (ChkAutoWidth.Checked)
-            {
                 ApplyColumnSizing();
-            }
             else
-            {
                 // Set all to None before loading saved widths
                 foreach (var col in GridServs.Columns.Cast<DataGridViewColumn>())
-                {
                     col.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
-                }
-            }
 
             // Update the filter dropdowns to show only values present in the loaded list
             UpdateFilterLists();
@@ -441,9 +467,7 @@ public sealed partial class FormMain : Form
 
             // Load saved widths only if NOT in auto-width mode (after data is populated)
             if (!ChkAutoWidth.Checked)
-            {
                 LoadColumnWidths();
-            }
 
             AppendLog($"Loaded {_allServices.Count} services.");
         }
@@ -501,9 +525,7 @@ public sealed partial class FormMain : Form
             {
                 // Manual sizing mode - set all to None to respect saved widths
                 foreach (var col in GridServs.Columns.Cast<DataGridViewColumn>())
-                {
                     col.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
-                }
             }
         }
         finally
@@ -567,20 +589,12 @@ public sealed partial class FormMain : Form
         try
         {
             if (CbFilterStatus.SelectedItem is string statusSel && !string.Equals(statusSel, "All", StringComparison.OrdinalIgnoreCase))
-            {
                 if (Enum.TryParse<ServiceControllerStatus>(statusSel, out var parsedStatus))
-                {
                     working = working.Where(s => s.Status == parsedStatus).ToList();
-                }
-            }
 
             if (CbFilterStartMode.SelectedItem is string startSel && !string.Equals(startSel, "All", StringComparison.OrdinalIgnoreCase))
-            {
                 if (Enum.TryParse<ServiceStartMode>(startSel, out var parsedStart))
-                {
                     working = working.Where(s => s.StartMode == parsedStart).ToList();
-                }
-            }
         }
         catch
         {
@@ -593,11 +607,9 @@ public sealed partial class FormMain : Form
             var prop = typeof(Service).GetProperty(_sortPropertyName!);
 
             if (prop != null)
-            {
                 working = _sortOrder == SortOrder.Ascending
-                    ? working.OrderBy(s => prop.GetValue(s, null)).ToList()
-                    : working.OrderByDescending(s => prop.GetValue(s, null)).ToList();
-            }
+                ? working.OrderBy(s => prop.GetValue(s, null)).ToList()
+                : working.OrderByDescending(s => prop.GetValue(s, null)).ToList();
         }
 
         // ChangeStartMode helper methods are defined after this method
@@ -675,7 +687,6 @@ public sealed partial class FormMain : Form
             var results = new List<string>();
 
             foreach (var serv in selecteds)
-            {
                 try
                 {
                     using var key = Registry.LocalMachine.OpenSubKey($"SYSTEM\\CurrentControlSet\\Services\\{serv.ServiceName}", writable: true);
@@ -709,7 +720,6 @@ public sealed partial class FormMain : Form
                     AppendLog(err, LogLevel.Error);
                     results.Add(err);
                 }
-            }
 
             // Refresh list on UI thread and show summary
             this.InvokeIfRequired(() =>
@@ -750,10 +760,8 @@ public sealed partial class FormMain : Form
                 _ => SortOrder.None
             };
             if (_sortOrder == SortOrder.None)
-            {
                 // clear property when cycling back to no-sort
                 _sortPropertyName = null;
-            }
         }
         else
         {
@@ -841,6 +849,7 @@ public sealed partial class FormMain : Form
         BtnCancel.Enabled = true;
         AppendLog($"Starting {selectedServices.Count} service(s)...");
 
+        // ReSharper disable once MethodHasAsyncOverload
         _currentOperationCts?.Cancel();
         _currentOperationCts?.Dispose();
         _currentOperationCts = new CancellationTokenSource();
@@ -850,7 +859,6 @@ public sealed partial class FormMain : Form
             var results = await _orchestrator.StartServicesAsync(selectedServices, _currentOperationCts.Token);
 
             foreach (var serv in selectedServices)
-            {
                 if (results.TryGetValue(serv.ServiceName, out var ok) && ok)
                 {
                     serv.Status = ServiceControllerStatus.Running;
@@ -862,7 +870,6 @@ public sealed partial class FormMain : Form
                     AppendLog($"Failed to start {serv.ServiceName}", LogLevel.Error);
                     _logger.LogError("Failed to start service {ServiceName}", serv.ServiceName);
                 }
-            }
 
             AppendLog($"Start operation completed for {selectedServices.Count} service(s).");
         }
@@ -898,6 +905,7 @@ public sealed partial class FormMain : Form
         BtnCancel.Enabled = true;
         AppendLog($"Stopping {selectedServices.Count} service(s)...");
 
+        // ReSharper disable once MethodHasAsyncOverload
         _currentOperationCts?.Cancel();
         _currentOperationCts?.Dispose();
         _currentOperationCts = new CancellationTokenSource();
@@ -907,7 +915,6 @@ public sealed partial class FormMain : Form
             var results = await _orchestrator.StopServicesAsync(selectedServices, _currentOperationCts.Token);
 
             foreach (var serv in selectedServices)
-            {
                 if (results.TryGetValue(serv.ServiceName, out var ok) && ok)
                 {
                     serv.Status = ServiceControllerStatus.Stopped;
@@ -919,7 +926,6 @@ public sealed partial class FormMain : Form
                     AppendLog($"Failed to stop {serv.ServiceName}", LogLevel.Error);
                     _logger.LogError("Failed to stop service {ServiceName}", serv.ServiceName);
                 }
-            }
 
             AppendLog($"Stop operation completed for {selectedServices.Count} service(s).");
         }
@@ -954,6 +960,7 @@ public sealed partial class FormMain : Form
         BtnCancel.Enabled = true;
         AppendLog($"Restarting {sel.Count} service(s)...");
 
+        // ReSharper disable once MethodHasAsyncOverload
         _currentOperationCts?.Cancel();
         _currentOperationCts?.Dispose();
         _currentOperationCts = new CancellationTokenSource();
@@ -963,7 +970,6 @@ public sealed partial class FormMain : Form
             var results = await _orchestrator.RestartServicesAsync(sel, _currentOperationCts.Token);
 
             foreach (var s in sel)
-            {
                 if (results.TryGetValue(s.ServiceName, out var ok) && ok)
                 {
                     AppendLog($"Restarted: {s.ServiceName} ({s.DisplayName})");
@@ -974,7 +980,6 @@ public sealed partial class FormMain : Form
                     AppendLog($"Failed to restart {s.ServiceName}", LogLevel.Error);
                     _logger.LogError("Failed to restart service {ServiceName}", s.ServiceName);
                 }
-            }
 
             AppendLog($"Restart operation completed for {sel.Count} service(s).");
         }
@@ -1051,7 +1056,30 @@ public sealed partial class FormMain : Form
         => SaveColumnWidths();
 
     private void FormPrincipal_FormClosing(object? sender, FormClosingEventArgs e)
-        => SaveColumnWidths();
+    {
+        if (!_shouldSaveOnClose)
+            return;
+            
+        SaveColumnWidths();
+
+        try
+        {
+            // Save current window bounds/state to config
+            var rect = (WindowState == FormWindowState.Normal) ? Bounds : RestoreBounds;
+
+            _appConfig.WindowLeft = rect.Left;
+            _appConfig.WindowTop = rect.Top;
+            _appConfig.WindowWidth = rect.Width;
+            _appConfig.WindowHeight = rect.Height;
+            _appConfig.WindowState = WindowState.ToString();
+            _appConfig.SplitterDistance = SplitMain.SplitterDistance;
+            _appConfig.Save();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save window bounds");
+        }
+    }
 
     private void FormPrincipal_KeyDown(object sender, KeyEventArgs e)
     {
@@ -1105,7 +1133,7 @@ public sealed partial class FormMain : Form
         }
 
         // If hiding the column, we're done
-        if (!_appConfig.ShowPathColumn || _servicesList == null)
+        if (!_appConfig.ShowPathColumn)
             return;
 
         var servicesToUpdate = _servicesList.Where(s => string.IsNullOrEmpty(s.Path)).ToList();
@@ -1119,9 +1147,7 @@ public sealed partial class FormMain : Form
             using var pathHelper = new ServicePathHelper();
 
             foreach (var service in servicesToUpdate)
-            {
                 service.Path = pathHelper.GetExecutablePath(service.ServiceName) ?? string.Empty;
-            }
         });
 
         // Notify the binding source that data changed

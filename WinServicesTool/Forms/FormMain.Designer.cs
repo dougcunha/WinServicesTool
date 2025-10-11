@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormMain));
+            var resources = new System.ComponentModel.ComponentResourceManager(typeof(FormMain));
             TabCtrl = new TabControl();
             TabMain = new TabPage();
             tableLayoutPanel2 = new TableLayoutPanel();
@@ -40,6 +40,7 @@
             BtnStop = new Button();
             BtnRestart = new Button();
             BtnChangeStartMode = new Button();
+            BtnCancel = new Button();
             tableLayoutPanelFilter = new TableLayoutPanel();
             CbFilterStatus = new ComboBox();
             CbFilterStartMode = new ComboBox();
@@ -47,6 +48,15 @@
             LblFilterStatus = new Label();
             LblStartMode = new Label();
             GridServs = new DataGridView();
+            ColDisplayName = new DataGridViewTextBoxColumn();
+            ColServiceName = new DataGridViewTextBoxColumn();
+            ColStatus = new DataGridViewTextBoxColumn();
+            ColStartMode = new DataGridViewTextBoxColumn();
+            ColServiceType = new DataGridViewTextBoxColumn();
+            ColCanPauseAndContinue = new DataGridViewCheckBoxColumn();
+            ColCanShutdown = new DataGridViewCheckBoxColumn();
+            ColCanStop = new DataGridViewCheckBoxColumn();
+            ColPath = new DataGridViewTextBoxColumn();
             serviceBindingSource = new BindingSource(components);
             TabSettings = new TabPage();
             PnlSettings = new TableLayoutPanel();
@@ -57,15 +67,6 @@
             ChkShowPath = new CheckBox();
             TextLog = new RichTextBox();
             SplitMain = new SplitContainer();
-            ColDisplayName = new DataGridViewTextBoxColumn();
-            ColServiceName = new DataGridViewTextBoxColumn();
-            ColStatus = new DataGridViewTextBoxColumn();
-            ColStartMode = new DataGridViewTextBoxColumn();
-            ColServiceType = new DataGridViewTextBoxColumn();
-            ColCanPauseAndContinue = new DataGridViewCheckBoxColumn();
-            ColCanShutdown = new DataGridViewCheckBoxColumn();
-            ColCanStop = new DataGridViewCheckBoxColumn();
-            ColPath = new DataGridViewTextBoxColumn();
             TabCtrl.SuspendLayout();
             TabMain.SuspendLayout();
             tableLayoutPanel2.SuspendLayout();
@@ -91,7 +92,7 @@
             TabCtrl.Location = new Point(0, 0);
             TabCtrl.Name = "TabCtrl";
             TabCtrl.SelectedIndex = 0;
-            TabCtrl.Size = new Size(1088, 561);
+            TabCtrl.Size = new Size(1199, 561);
             TabCtrl.TabIndex = 0;
             // 
             // TabMain
@@ -100,7 +101,7 @@
             TabMain.Location = new Point(4, 24);
             TabMain.Name = "TabMain";
             TabMain.Padding = new Padding(3);
-            TabMain.Size = new Size(1080, 533);
+            TabMain.Size = new Size(1191, 533);
             TabMain.TabIndex = 0;
             TabMain.Text = "Services";
             TabMain.UseVisualStyleBackColor = true;
@@ -119,26 +120,19 @@
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel2.Size = new Size(1074, 527);
+            tableLayoutPanel2.Size = new Size(1185, 527);
             tableLayoutPanel2.TabIndex = 0;
             // 
             // tableLayoutPanel3
             // 
-            tableLayoutPanel3.ColumnCount = 6;
+            tableLayoutPanel3.ColumnCount = 7;
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            // Initialize buttons used in header
-            BtnLoad = new Button();
-            BtnStart = new Button();
-            BtnStop = new Button();
-            BtnRestart = new Button();
-            BtnChangeStartMode = new Button();
-            BtnCancel = new Button();
-
             tableLayoutPanel3.Controls.Add(BtnLoad, 0, 0);
             tableLayoutPanel3.Controls.Add(BtnStart, 1, 0);
             tableLayoutPanel3.Controls.Add(BtnStop, 2, 0);
@@ -150,7 +144,7 @@
             tableLayoutPanel3.Name = "tableLayoutPanel3";
             tableLayoutPanel3.RowCount = 1;
             tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel3.Size = new Size(1068, 44);
+            tableLayoutPanel3.Size = new Size(1179, 44);
             tableLayoutPanel3.TabIndex = 1;
             // 
             // BtnLoad
@@ -178,6 +172,7 @@
             Imgs.Images.SetKeyName(3, "square.png");
             Imgs.Images.SetKeyName(4, "rotate-ccw.png");
             Imgs.Images.SetKeyName(5, "trending-up.png");
+            Imgs.Images.SetKeyName(6, "ban.png");
             // 
             // BtnStart
             // 
@@ -237,9 +232,9 @@
             // 
             // BtnCancel
             // 
-            BtnCancel = new Button();
             BtnCancel.Dock = DockStyle.Fill;
-            BtnCancel.ImageKey = "";
+            BtnCancel.Font = new Font("Segoe UI", 9F);
+            BtnCancel.ImageKey = "ban.png";
             BtnCancel.ImageList = Imgs;
             BtnCancel.Location = new Point(503, 3);
             BtnCancel.Name = "BtnCancel";
@@ -268,7 +263,7 @@
             tableLayoutPanelFilter.Name = "tableLayoutPanelFilter";
             tableLayoutPanelFilter.RowCount = 1;
             tableLayoutPanelFilter.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanelFilter.Size = new Size(1068, 34);
+            tableLayoutPanelFilter.Size = new Size(1179, 34);
             tableLayoutPanelFilter.TabIndex = 2;
             // 
             // CbFilterStatus
@@ -302,7 +297,7 @@
             TxtFilter.Margin = new Padding(5, 5, 5, 3);
             TxtFilter.Name = "TxtFilter";
             TxtFilter.PlaceholderText = "Filter text... (ctrl + k)";
-            TxtFilter.Size = new Size(558, 25);
+            TxtFilter.Size = new Size(669, 25);
             TxtFilter.TabIndex = 2;
             // 
             // LblFilterStatus
@@ -334,7 +329,6 @@
             GridServs.AllowUserToOrderColumns = true;
             GridServs.AllowUserToResizeRows = false;
             GridServs.AutoGenerateColumns = false;
-            GridServs.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
             GridServs.BorderStyle = BorderStyle.None;
             GridServs.CellBorderStyle = DataGridViewCellBorderStyle.None;
             GridServs.ColumnHeadersHeight = 40;
@@ -347,8 +341,71 @@
             GridServs.ReadOnly = true;
             GridServs.RowHeadersVisible = false;
             GridServs.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            GridServs.Size = new Size(1068, 431);
+            GridServs.Size = new Size(1179, 431);
             GridServs.TabIndex = 0;
+            // 
+            // ColDisplayName
+            // 
+            ColDisplayName.DataPropertyName = "DisplayName";
+            ColDisplayName.HeaderText = "Display Name";
+            ColDisplayName.Name = "ColDisplayName";
+            ColDisplayName.ReadOnly = true;
+            // 
+            // ColServiceName
+            // 
+            ColServiceName.DataPropertyName = "ServiceName";
+            ColServiceName.HeaderText = "Service Name";
+            ColServiceName.Name = "ColServiceName";
+            ColServiceName.ReadOnly = true;
+            // 
+            // ColStatus
+            // 
+            ColStatus.DataPropertyName = "Status";
+            ColStatus.HeaderText = "Status";
+            ColStatus.Name = "ColStatus";
+            ColStatus.ReadOnly = true;
+            // 
+            // ColStartMode
+            // 
+            ColStartMode.DataPropertyName = "StartMode";
+            ColStartMode.HeaderText = "Start Mode";
+            ColStartMode.Name = "ColStartMode";
+            ColStartMode.ReadOnly = true;
+            // 
+            // ColServiceType
+            // 
+            ColServiceType.DataPropertyName = "ServiceType";
+            ColServiceType.HeaderText = "Service Type";
+            ColServiceType.Name = "ColServiceType";
+            ColServiceType.ReadOnly = true;
+            // 
+            // ColCanPauseAndContinue
+            // 
+            ColCanPauseAndContinue.DataPropertyName = "CanPauseAndContinue";
+            ColCanPauseAndContinue.HeaderText = "Can Pause\n& Continue";
+            ColCanPauseAndContinue.Name = "ColCanPauseAndContinue";
+            ColCanPauseAndContinue.ReadOnly = true;
+            // 
+            // ColCanShutdown
+            // 
+            ColCanShutdown.DataPropertyName = "CanShutdown";
+            ColCanShutdown.HeaderText = "Can\nShutdown";
+            ColCanShutdown.Name = "ColCanShutdown";
+            ColCanShutdown.ReadOnly = true;
+            // 
+            // ColCanStop
+            // 
+            ColCanStop.DataPropertyName = "CanStop";
+            ColCanStop.HeaderText = "Can\nStop";
+            ColCanStop.Name = "ColCanStop";
+            ColCanStop.ReadOnly = true;
+            // 
+            // ColPath
+            // 
+            ColPath.DataPropertyName = "Path";
+            ColPath.HeaderText = "Path";
+            ColPath.Name = "ColPath";
+            ColPath.ReadOnly = true;
             // 
             // serviceBindingSource
             // 
@@ -423,7 +480,7 @@
             // 
             ChkAutoWidth.AutoSize = true;
             ChkAutoWidth.Dock = DockStyle.Top;
-            ChkAutoWidth.Location = new Point(5, 21);
+            ChkAutoWidth.Location = new Point(5, 40);
             ChkAutoWidth.Name = "ChkAutoWidth";
             ChkAutoWidth.Size = new Size(184, 19);
             ChkAutoWidth.TabIndex = 0;
@@ -435,7 +492,7 @@
             // 
             ChkShowPath.AutoSize = true;
             ChkShowPath.Dock = DockStyle.Top;
-            ChkShowPath.Location = new Point(5, 40);
+            ChkShowPath.Location = new Point(5, 21);
             ChkShowPath.Name = "ChkShowPath";
             ChkShowPath.Size = new Size(184, 19);
             ChkShowPath.TabIndex = 1;
@@ -452,7 +509,7 @@
             TextLog.Margin = new Padding(10);
             TextLog.Name = "TextLog";
             TextLog.ReadOnly = true;
-            TextLog.Size = new Size(1088, 126);
+            TextLog.Size = new Size(1199, 126);
             TextLog.TabIndex = 1;
             TextLog.Text = "";
             // 
@@ -470,78 +527,15 @@
             // SplitMain.Panel2
             // 
             SplitMain.Panel2.Controls.Add(TextLog);
-            SplitMain.Size = new Size(1088, 691);
+            SplitMain.Size = new Size(1199, 691);
             SplitMain.SplitterDistance = 561;
             SplitMain.TabIndex = 2;
-            // 
-            // ColDisplayName
-            // 
-            ColDisplayName.DataPropertyName = "DisplayName";
-            ColDisplayName.HeaderText = "Display Name";
-            ColDisplayName.Name = "ColDisplayName";
-            ColDisplayName.ReadOnly = true;
-            // 
-            // ColServiceName
-            // 
-            ColServiceName.DataPropertyName = "ServiceName";
-            ColServiceName.HeaderText = "Service Name";
-            ColServiceName.Name = "ColServiceName";
-            ColServiceName.ReadOnly = true;
-            // 
-            // ColStatus
-            // 
-            ColStatus.DataPropertyName = "Status";
-            ColStatus.HeaderText = "Status";
-            ColStatus.Name = "ColStatus";
-            ColStatus.ReadOnly = true;
-            // 
-            // ColStartMode
-            // 
-            ColStartMode.DataPropertyName = "StartMode";
-            ColStartMode.HeaderText = "Start Mode";
-            ColStartMode.Name = "ColStartMode";
-            ColStartMode.ReadOnly = true;
-            // 
-            // ColServiceType
-            // 
-            ColServiceType.DataPropertyName = "ServiceType";
-            ColServiceType.HeaderText = "Service Type";
-            ColServiceType.Name = "ColServiceType";
-            ColServiceType.ReadOnly = true;
-            // 
-            // ColCanPauseAndContinue
-            // 
-            ColCanPauseAndContinue.DataPropertyName = "CanPauseAndContinue";
-            ColCanPauseAndContinue.HeaderText = "Can Pause\n& Continue";
-            ColCanPauseAndContinue.Name = "ColCanPauseAndContinue";
-            ColCanPauseAndContinue.ReadOnly = true;
-            // 
-            // ColCanShutdown
-            // 
-            ColCanShutdown.DataPropertyName = "CanShutdown";
-            ColCanShutdown.HeaderText = "Can\nShutdown";
-            ColCanShutdown.Name = "ColCanShutdown";
-            ColCanShutdown.ReadOnly = true;
-            // 
-            // ColCanStop
-            // 
-            ColCanStop.DataPropertyName = "CanStop";
-            ColCanStop.HeaderText = "Can\nStop";
-            ColCanStop.Name = "ColCanStop";
-            ColCanStop.ReadOnly = true;
-            // 
-            // Path
-            // 
-            ColPath.DataPropertyName = "Path";
-            ColPath.HeaderText = "Path";
-            ColPath.Name = "Path";
-            ColPath.ReadOnly = true;
             // 
             // FormMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1088, 691);
+            ClientSize = new Size(1199, 691);
             Controls.Add(SplitMain);
             Icon = (Icon)resources.GetObject("$this.Icon");
             KeyPreview = true;
