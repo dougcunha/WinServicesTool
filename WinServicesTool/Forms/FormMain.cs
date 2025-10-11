@@ -36,6 +36,8 @@ public sealed partial class FormMain : Form
         _serviceManager = serviceManager;
         _privilegeService = privilegeService;
         _orchestrator = orchestrator;
+        // Ensure Cancel button starts disabled
+        BtnCancel.Enabled = false;
         _appConfig.PropertyChanged += AppConfigChanged;
         FormClosing += FormPrincipal_FormClosing;
         GridServs.ColumnWidthChanged += GridServs_ColumnWidthChanged;
@@ -836,6 +838,7 @@ public sealed partial class FormMain : Form
             return;
 
         BtnStart.Enabled = false;
+        BtnCancel.Enabled = true;
         AppendLog($"Starting {selectedServices.Count} service(s)...");
 
         _currentOperationCts?.Cancel();
@@ -866,6 +869,7 @@ public sealed partial class FormMain : Form
         finally
         {
             BtnStart.Enabled = true;
+            BtnCancel.Enabled = false;
             _currentOperationCts?.Dispose();
             _currentOperationCts = null;
         }
@@ -891,6 +895,7 @@ public sealed partial class FormMain : Form
             return;
 
         BtnStop.Enabled = false;
+        BtnCancel.Enabled = true;
         AppendLog($"Stopping {selectedServices.Count} service(s)...");
 
         _currentOperationCts?.Cancel();
@@ -921,6 +926,7 @@ public sealed partial class FormMain : Form
         finally
         {
             BtnStop.Enabled = true;
+            BtnCancel.Enabled = false;
             _currentOperationCts?.Dispose();
             _currentOperationCts = null;
         }
@@ -945,6 +951,7 @@ public sealed partial class FormMain : Form
             return;
 
         BtnRestart.Enabled = false;
+        BtnCancel.Enabled = true;
         AppendLog($"Restarting {sel.Count} service(s)...");
 
         _currentOperationCts?.Cancel();
@@ -974,6 +981,7 @@ public sealed partial class FormMain : Form
         finally
         {
             BtnRestart.Enabled = true;
+            BtnCancel.Enabled = false;
             _currentOperationCts?.Dispose();
             _currentOperationCts = null;
         }

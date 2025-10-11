@@ -131,6 +131,14 @@
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            // Initialize buttons used in header
+            BtnLoad = new Button();
+            BtnStart = new Button();
+            BtnStop = new Button();
+            BtnRestart = new Button();
+            BtnChangeStartMode = new Button();
+            BtnCancel = new Button();
+
             tableLayoutPanel3.Controls.Add(BtnLoad, 0, 0);
             tableLayoutPanel3.Controls.Add(BtnStart, 1, 0);
             tableLayoutPanel3.Controls.Add(BtnStop, 2, 0);
