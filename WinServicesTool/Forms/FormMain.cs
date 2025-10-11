@@ -26,10 +26,12 @@ public sealed partial class FormMain : Form
     private readonly IWindowsServiceManager _serviceManager;
     private readonly IPrivilegeService _privilegeService;
     private readonly IServiceOperationOrchestrator _orchestrator;
+    private readonly IRegistryService _registryService;
+    private readonly IRegistryEditor _registryEditor;
     private CancellationTokenSource? _currentOperationCts;
     private bool _shouldSaveOnClose;
 
-    public FormMain(ILogger<FormMain> logger, IWindowsServiceManager serviceManager, IPrivilegeService privilegeService, IServiceOperationOrchestrator orchestrator, AppConfig appConfig)
+    public FormMain(ILogger<FormMain> logger, IWindowsServiceManager serviceManager, IPrivilegeService privilegeService, IServiceOperationOrchestrator orchestrator, IRegistryService registryService, IRegistryEditor registryEditor, AppConfig appConfig)
     {
         InitializeComponent();
         _appConfig = appConfig;
@@ -37,6 +39,8 @@ public sealed partial class FormMain : Form
         _serviceManager = serviceManager;
         _privilegeService = privilegeService;
         _orchestrator = orchestrator;
+        _registryService = registryService;
+        _registryEditor = registryEditor;
         // Ensure Cancel button starts disabled
         BtnCancel.Enabled = false;
         _appConfig.PropertyChanged += AppConfigChanged;
@@ -306,28 +310,16 @@ public sealed partial class FormMain : Form
 
             AppendLog($"Attempting to open registry at: {registryPath}");
 
-            // Set the LastKey in the current user's registry so regedit opens at the correct location
-            using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Applets\Regedit"))
+            try
             {
-                key.SetValue("LastKey", registryPath, RegistryValueKind.String);
+                _registryService.SetRegeditLastKey(registryPath);
+                AppendLog($"Requested Regedit to open at: {registryPath}");
             }
-
-            // Small delay to ensure registry is written
-            Thread.Sleep(100);
-
-            // Now open regedit - it should automatically navigate to the LastKey
-            var regeditStart = new ProcessStartInfo
+            catch (Exception ex)
             {
-                FileName = "regedit.exe",
-                UseShellExecute = true
-            };
-
-            var process = Process.Start(regeditStart);
-
-            if (process != null)
-                AppendLog($"Registry opened successfully for service: {serviceName} - PID: {process.Id}");
-            else
-                AppendLog($"Failed to start regedit process for service: {serviceName}", LogLevel.Warning);
+                AppendLog($"Failed to open registry for {serviceName}: {ex.Message}", LogLevel.Error);
+                _logger.LogError(ex, "Failed to open registry for service {ServiceName}", serviceName);
+            }
         }
         catch (Exception ex)
         {
@@ -689,18 +681,10 @@ public sealed partial class FormMain : Form
             foreach (var serv in selecteds)
                 try
                 {
-                    using var key = Registry.LocalMachine.OpenSubKey($"SYSTEM\\CurrentControlSet\\Services\\{serv.ServiceName}", writable: true);
-
-                    if (key == null)
-                    {
-                        var msg = $"[{serv.ServiceName}] Registry key not found.";
-                        AppendLog(msg, LogLevel.Warning);
-                        results.Add(msg);
-                        continue;
-                    }
-
+                    var subKey = $"SYSTEM\\CurrentControlSet\\Services\\{serv.ServiceName}";
                     var startValue = StartModeToDword(newMode);
-                    key.SetValue("Start", startValue, RegistryValueKind.DWord);
+
+                    _registryEditor.SetDwordInLocalMachine(subKey, "Start", startValue);
 
                     serv.StartMode = newMode switch
                     {
@@ -1059,7 +1043,7 @@ public sealed partial class FormMain : Form
     {
         if (!_shouldSaveOnClose)
             return;
-            
+
         SaveColumnWidths();
 
         try

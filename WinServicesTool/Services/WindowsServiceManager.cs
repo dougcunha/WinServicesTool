@@ -87,7 +87,7 @@ public sealed class WindowsServiceManager : IWindowsServiceManager
                 while (sc.Status != ServiceControllerStatus.Running && sw.Elapsed < timeout)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    System.Threading.Thread.Sleep(200);
+                    Thread.Sleep(200);
                     sc.Refresh();
                 }
             }
@@ -109,7 +109,7 @@ public sealed class WindowsServiceManager : IWindowsServiceManager
                 while (sc.Status != ServiceControllerStatus.Stopped && sw.Elapsed < timeout)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    System.Threading.Thread.Sleep(200);
+                    Thread.Sleep(200);
                     sc.Refresh();
                 }
             }
