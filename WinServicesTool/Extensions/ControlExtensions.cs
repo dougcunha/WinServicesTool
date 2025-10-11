@@ -1,4 +1,4 @@
-namespace WinServicesTool.Extensions;
+﻿namespace WinServicesTool.Extensions;
 
 /// <summary>
 /// Helper extension methods for Control to simplify thread-safe UI actions.

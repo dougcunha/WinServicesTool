@@ -20,7 +20,7 @@ public sealed partial class Service : INotifyPropertyChanged
     /// Gets or sets the path to the service executable, if known.
     /// </summary>
     public string? Path { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the friendly display name of the service as shown in the Services MMC.
     /// </summary>

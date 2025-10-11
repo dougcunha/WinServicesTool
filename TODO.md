@@ -13,7 +13,7 @@ This file lists features and implementation tasks derived from the project's REA
 3. Filtering, sorting and search
 4. Saved services (Favorites) with export/import
 5. Editing and removal of services (where permitted)
-6. Logging, tests, CI and packaging
+6. Logging, CI and packaging
 
 ---
 
@@ -30,9 +30,9 @@ This file lists features and implementation tasks derived from the project's REA
 
 ### 3) Filter, Search and Sort
 
-- [ ] Text filter by Service Name or Display Name (contains / starts-with)
-- [ ] Status filter (Running, Stopped, Paused, All)
-- [ ] Sort by Name, Status, Startup Type (clickable column headers)
+- [X] Text filter by Service Name or Display Name (contains / starts-with)
+- [X] Status filter (Running, Stopped, Paused, All)
+- [X] Sort by Name, Status, Startup Type (clickable column headers)
 - [ ] Preserve sorting/filter selections between app sessions (optional)
 - Priority: High
 
@@ -41,7 +41,6 @@ This file lists features and implementation tasks derived from the project's REA
 - [ ] Allow editing Display Name where permitted
 - [ ] Allow changing Startup Type (Automatic, Manual, Disabled) where permitted
 - [ ] Validate changes and show confirmations
-- [ ] Handle permission errors gracefully
 - Priority: Medium
 
 ### 5) Remove / Uninstall service
@@ -68,34 +67,24 @@ This file lists features and implementation tasks derived from the project's REA
 
 ### 8) Logging & Diagnostics
 
-- [ ] Improve NLog configuration and include a UI-accessible log viewer
-- [ ] Add telemetry-friendly structured logs (no PII)
-- [ ] Include an option to copy or export logs for support
+- [X] Improve NLog configuration and include a UI-accessible log viewer
 - Priority: Medium
 
 ### 9) Permissions & Elevation UX
 
-- [ ] Detect whether the app is running elevated
-- [ ] Present a clear indication when running without admin rights
-- [ ] Provide quick guidance / button to restart with elevation
-- [ ] Disable control actions when not elevated (read-only mode)
+- [X] Detect whether the app is running elevated
+- [X] Present a clear indication when running without admin rights
+- [X] Provide quick guidance / button to restart with elevation
 - Priority: High
 
-### 10) Tests
-
-- [ ] Unit tests for service discovery and list serialization
-- [ ] Integration tests (mocked) for control operations
-- [ ] Add test runner to CI
-- Priority: Medium
-
-### 11) CI / Packaging / Releases
+### 10) CI / Packaging / Releases
 
 - [ ] Add GitHub Actions to build on push and PR
 - [ ] Produce release artifacts (zip) and optionally installer
 - [ ] Tagging and release workflow configured
 - Priority: Medium
 
-### 12) Localization
+### 11) Localization
 
 - [ ] Prepare UI for localization (resource files)
 - [ ] Add PT-BR and EN translations for core UI strings
@@ -114,7 +103,7 @@ This file lists features and implementation tasks derived from the project's REA
 
 - Milestone 1 (MVP): Tasks 1, 2, 3, 6, 9
 - Milestone 2: Tasks 4, 7, 8, 10
-- Milestone 3: Tasks 11, 12
+- Milestone 3: Tasks 11
 
 ---
 

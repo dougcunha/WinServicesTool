@@ -1,4 +1,4 @@
-namespace WinServicesTool.Models;
+﻿namespace WinServicesTool.Models;
 
 [Flags]
 public enum ServiceTypeEx

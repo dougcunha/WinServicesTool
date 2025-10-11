@@ -1,4 +1,4 @@
-namespace WinServicesTool.Services;
+﻿namespace WinServicesTool.Services;
 
 /// <summary>
 /// Abstraction for privilege and elevation related operations.

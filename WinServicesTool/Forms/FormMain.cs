@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.ServiceProcess;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
@@ -411,16 +411,16 @@ public sealed partial class FormMain : Form
 
             // Update the filter dropdowns to show only values present in the loaded list
             UpdateFilterLists();
-            
+
             // Now populate the grid with data
             ApplyFilterAndSort();
-            
+
             // Load saved widths only if NOT in auto-width mode (after data is populated)
             if (!ChkAutoWidth.Checked)
             {
                 LoadColumnWidths();
             }
-            
+
             AppendLog($"Loaded {_allServices.Count} services.");
         }
         catch (Exception ex)

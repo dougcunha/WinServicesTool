@@ -1,4 +1,4 @@
-namespace WinServicesTool.Services;
+﻿namespace WinServicesTool.Services;
 
 /// <summary>
 /// Abstraction for operations that enumerate and manipulate Windows services.

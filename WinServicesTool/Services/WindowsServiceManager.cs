@@ -1,4 +1,4 @@
-using System.ServiceProcess;
+﻿using System.ServiceProcess;
 using Microsoft.Extensions.Logging;
 using WinServicesTool.Models;
 using WinServicesTool.Utils;

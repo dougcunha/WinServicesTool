@@ -1,4 +1,4 @@
-namespace WinServicesTool.Forms;
+﻿namespace WinServicesTool.Forms;
 
 public sealed class FormChangeStartMode : Form
 {
