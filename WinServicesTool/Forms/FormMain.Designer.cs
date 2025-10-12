@@ -225,7 +225,7 @@
             BtnChangeStartMode.Name = "BtnChangeStartMode";
             BtnChangeStartMode.Size = new Size(94, 38);
             BtnChangeStartMode.TabIndex = 6;
-            BtnChangeStartMode.Text = "Start mode";
+            BtnChangeStartMode.Text = "Start mode (F6)";
             BtnChangeStartMode.TextImageRelation = TextImageRelation.TextBeforeImage;
             BtnChangeStartMode.UseVisualStyleBackColor = true;
             BtnChangeStartMode.Click += BtnChangeStartMode_Click;
@@ -331,7 +331,7 @@
             GridServs.AutoGenerateColumns = false;
             GridServs.BorderStyle = BorderStyle.None;
             GridServs.CellBorderStyle = DataGridViewCellBorderStyle.None;
-            GridServs.ColumnHeadersHeight = 40;
+            GridServs.ColumnHeadersHeight = 48;
             GridServs.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             GridServs.Columns.AddRange(new DataGridViewColumn[] { ColDisplayName, ColServiceName, ColStatus, ColStartMode, ColServiceType, ColCanPauseAndContinue, ColCanShutdown, ColCanStop, ColPath });
             GridServs.DataSource = serviceBindingSource;
@@ -350,6 +350,7 @@
             ColDisplayName.HeaderText = "Display Name";
             ColDisplayName.Name = "ColDisplayName";
             ColDisplayName.ReadOnly = true;
+            ColDisplayName.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
             // 
             // ColServiceName
             // 
@@ -371,6 +372,7 @@
             ColStartMode.HeaderText = "Start Mode";
             ColStartMode.Name = "ColStartMode";
             ColStartMode.ReadOnly = true;
+            ColStartMode.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
             // 
             // ColServiceType
             // 
@@ -425,8 +427,8 @@
             // PnlSettings
             // 
             PnlSettings.ColumnCount = 3;
-            PnlSettings.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
-            PnlSettings.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
+            PnlSettings.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220F));
+            PnlSettings.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220F));
             PnlSettings.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             PnlSettings.Controls.Add(GrpStarting, 1, 0);
             PnlSettings.Controls.Add(GrpSettingsGrid, 0, 0);
@@ -447,7 +449,7 @@
             GrpStarting.Location = new Point(203, 3);
             GrpStarting.Name = "GrpStarting";
             GrpStarting.Padding = new Padding(5);
-            GrpStarting.Size = new Size(194, 176);
+            GrpStarting.Size = new Size(250, 176);
             GrpStarting.TabIndex = 1;
             GrpStarting.TabStop = false;
             GrpStarting.Text = "Starting";
@@ -458,7 +460,7 @@
             ChkStartAsAdm.Dock = DockStyle.Top;
             ChkStartAsAdm.Location = new Point(5, 21);
             ChkStartAsAdm.Name = "ChkStartAsAdm";
-            ChkStartAsAdm.Size = new Size(184, 19);
+            ChkStartAsAdm.Size = new Size(250, 19);
             ChkStartAsAdm.TabIndex = 0;
             ChkStartAsAdm.Text = "Always start as administrator";
             ChkStartAsAdm.UseVisualStyleBackColor = true;
@@ -471,7 +473,7 @@
             GrpSettingsGrid.Location = new Point(3, 3);
             GrpSettingsGrid.Name = "GrpSettingsGrid";
             GrpSettingsGrid.Padding = new Padding(5);
-            GrpSettingsGrid.Size = new Size(194, 176);
+            GrpSettingsGrid.Size = new Size(200, 176);
             GrpSettingsGrid.TabIndex = 0;
             GrpSettingsGrid.TabStop = false;
             GrpSettingsGrid.Text = "Grid";

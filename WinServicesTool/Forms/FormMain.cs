@@ -138,8 +138,6 @@ public sealed partial class FormMain : Form
                     // ignore invalid splitter values
                 }
             }
-
-            ApplyColumnSizing();
         }
         catch
         {
@@ -651,7 +649,9 @@ public sealed partial class FormMain : Form
         if (string.IsNullOrEmpty(_sortPropertyName) || _sortOrder == SortOrder.None)
             return;
 
-        var idx = GridServs.Columns.Cast<DataGridViewColumn>().ToList().FindIndex(c => c.DataPropertyName == _sortPropertyName || c.Name == _sortPropertyName);
+        var idx = GridServs.Columns.Cast<DataGridViewColumn>()
+            .ToList()
+            .FindIndex(c => c.DataPropertyName == _sortPropertyName || c.Name == _sortPropertyName);
 
         if (idx < 0)
             return;
@@ -1014,15 +1014,10 @@ public sealed partial class FormMain : Form
     // Persist app settings when user toggles checkbox
     private void ChkAutoWidth_CheckedChanged(object? sender, EventArgs e)
     {
-        if (ChkAutoWidth.Checked)
+        ApplyColumnSizing();
+        
+        if (!ChkAutoWidth.Checked)
         {
-            // Switching to auto-width mode
-            ApplyColumnSizing();
-        }
-        else
-        {
-            // Switching to manual mode - load saved widths
-            ApplyColumnSizing(); // First set all to None
             LoadColumnWidths();  // Then apply saved widths
         }
     }
@@ -1095,12 +1090,24 @@ public sealed partial class FormMain : Form
                 BtnStart_Click(sender, e);
                 e.Handled = true;
                 break;
+
             case { KeyCode: Keys.F7 }:
                 BtnRestart_Click(sender, e);
                 e.Handled = true;
                 break;
+
             case { KeyCode: Keys.F2 }:
                 BtnStop_Click(sender, e);
+                e.Handled = true;
+                break;
+
+            case { KeyCode: Keys.F6 }:
+                BtnChangeStartMode_Click(sender, e);
+                e.Handled = true;
+                break;
+
+            case { KeyCode: Keys.F3 }:
+                ApplyColumnSizing();
                 e.Handled = true;
                 break;
         }

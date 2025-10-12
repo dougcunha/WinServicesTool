@@ -47,8 +47,9 @@ public sealed class FormChangeStartMode : Form
         var btnOk = new Button
         {
             Text = "OK",
-            Left = 148,
+            Left = 144,
             Width = 80,
+            Height = 38,
             Top = 76,
             DialogResult = DialogResult.OK
         };
@@ -56,8 +57,9 @@ public sealed class FormChangeStartMode : Form
         var btnCancel = new Button
         {
             Text = "Cancel",
-            Left = 236,
+            Left = 230,
             Width = 80,
+            Height = 38,
             Top = 76,
             DialogResult = DialogResult.Cancel
         };
