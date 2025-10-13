@@ -5,6 +5,7 @@ A Windows Services manager tool to easily view and control Windows services (sta
 ## Table of Contents
 
 - [Features](#features)
+- [Roadmap](#roadmap)
 - [Screenshots](#screenshots)
 - [Requirements](#requirements)
 - [Installation](#installation)
@@ -21,11 +22,16 @@ A Windows Services manager tool to easily view and control Windows services (sta
 - Start, Stop and Restart services from the UI.
 - Filter and search services by name, display name or status.
 - Sort services by name, status or startup type.
-- Edit service properties (display name, startup type) where supported.
+- Edit service properties (startup type) where supported.
+- Simple, responsive UI with logging support (NLog) for troubleshooting.
+
+## Roadmap
+
+- Edit service properties (display name) where supported.
 - Remove/uninstall entries (where permitted by Windows and the current user privileges).
 - Save a custom list of services (favorites) to quickly access important services in a dedicated tab.
 - Export/Import saved lists for sharing or backups.
-- Simple, responsive UI with logging support (NLog) for troubleshooting.
+
 
 ## Screenshots
 
