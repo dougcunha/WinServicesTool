@@ -67,8 +67,24 @@ jobs:
           echo "⚠️ No coverage file found" >> $env:GITHUB_STEP_SUMMARY
         }
 
-    - name: Upload test results
+    - name: Check if test results exist
       if: always()
+      id: check_test_results
+      shell: pwsh
+      run: |
+        $hasTestResults = Test-Path ./TestResults/*.trx
+        echo "HAS_TEST_RESULTS=$hasTestResults" >> $env:GITHUB_OUTPUT
+
+    - name: Check if coverage report exists
+      if: always()
+      id: check_coverage
+      shell: pwsh
+      run: |
+        $hasCoverage = Test-Path ./CoverageReport/
+        echo "HAS_COVERAGE=$hasCoverage" >> $env:GITHUB_OUTPUT
+
+    - name: Upload test results
+      if: always() && steps.check_test_results.outputs.HAS_TEST_RESULTS == 'True'
       uses: actions/upload-artifact@v4
       with:
         name: test-results
@@ -76,7 +92,7 @@ jobs:
         retention-days: 30
 
     - name: Upload coverage report
-      if: always()
+      if: always() && steps.check_coverage.outputs.HAS_COVERAGE == 'True'
       uses: actions/upload-artifact@v4
       with:
         name: coverage-report
