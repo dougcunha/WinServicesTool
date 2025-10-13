@@ -10,7 +10,7 @@ public sealed class FormColumnChooser : Form
     /// <summary>
     /// Gets the list of selected column names after dialog is closed with OK.
     /// </summary>
-    public List<string> SelectedColumns { get; private set; } = [];
+    public List<string> ChosenColumnNames { get; private set; } = [];
 
     /// <summary>
     /// Creates a new column chooser dialog.
@@ -117,8 +117,8 @@ public sealed class FormColumnChooser : Form
             if (_lstColumns == null)
                 return;
 
-            // Map selected captions back to column names
-            SelectedColumns = _lstColumns.CheckedIndices.Cast<int>()
+            // Map checked captions back to column names
+            ChosenColumnNames = _lstColumns.CheckedIndices.Cast<int>()
                 .Select(i => columns[i].Name)
                 .ToList();
 

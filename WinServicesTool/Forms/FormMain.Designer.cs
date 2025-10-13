@@ -60,6 +60,9 @@
             TextLog = new RichTextBox();
             SplitMain = new SplitContainer();
             StatusBar = new StatusStrip();
+            LblStatusServices = new ToolStripStatusLabel();
+            LblStatusSeparator = new ToolStripStatusLabel();
+            LblStatusServicesRunning = new ToolStripStatusLabel();
             tableLayoutPanel2.SuspendLayout();
             tableLayoutPanel3.SuspendLayout();
             tableLayoutPanelFilter.SuspendLayout();
@@ -69,6 +72,7 @@
             SplitMain.Panel1.SuspendLayout();
             SplitMain.Panel2.SuspendLayout();
             SplitMain.SuspendLayout();
+            StatusBar.SuspendLayout();
             SuspendLayout();
             // 
             // tableLayoutPanel2
@@ -226,7 +230,7 @@
             // tableLayoutPanelFilter
             // 
             tableLayoutPanelFilter.ColumnCount = 5;
-            tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 50F));
+            tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70F));
             tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
             tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 50F));
             tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
@@ -249,7 +253,7 @@
             CbFilterStatus.Dock = DockStyle.Fill;
             CbFilterStatus.DropDownStyle = ComboBoxStyle.DropDownList;
             CbFilterStatus.FlatStyle = FlatStyle.Flat;
-            CbFilterStatus.Location = new Point(53, 5);
+            CbFilterStatus.Location = new Point(73, 5);
             CbFilterStatus.Margin = new Padding(3, 5, 3, 3);
             CbFilterStatus.Name = "CbFilterStatus";
             CbFilterStatus.Size = new Size(194, 23);
@@ -260,7 +264,7 @@
             CbFilterStartMode.Dock = DockStyle.Fill;
             CbFilterStartMode.DropDownStyle = ComboBoxStyle.DropDownList;
             CbFilterStartMode.FlatStyle = FlatStyle.Flat;
-            CbFilterStartMode.Location = new Point(303, 5);
+            CbFilterStartMode.Location = new Point(323, 5);
             CbFilterStartMode.Margin = new Padding(3, 5, 3, 3);
             CbFilterStartMode.Name = "CbFilterStartMode";
             CbFilterStartMode.Size = new Size(194, 23);
@@ -271,29 +275,31 @@
             TxtFilter.BorderStyle = BorderStyle.FixedSingle;
             TxtFilter.Dock = DockStyle.Fill;
             TxtFilter.Font = new Font("Segoe UI", 10F);
-            TxtFilter.Location = new Point(505, 5);
+            TxtFilter.Location = new Point(525, 5);
             TxtFilter.Margin = new Padding(5, 5, 5, 3);
             TxtFilter.Name = "TxtFilter";
             TxtFilter.PlaceholderText = "Filter text... (ctrl + k)";
-            TxtFilter.Size = new Size(736, 25);
+            TxtFilter.Size = new Size(716, 25);
             TxtFilter.TabIndex = 2;
             // 
             // LblFilterStatus
             // 
             LblFilterStatus.AutoSize = true;
             LblFilterStatus.Dock = DockStyle.Fill;
+            LblFilterStatus.Image = (Image)resources.GetObject("LblFilterStatus.Image");
+            LblFilterStatus.ImageAlign = ContentAlignment.MiddleLeft;
             LblFilterStatus.Location = new Point(0, 0);
             LblFilterStatus.Margin = new Padding(0);
             LblFilterStatus.Name = "LblFilterStatus";
-            LblFilterStatus.Size = new Size(50, 34);
+            LblFilterStatus.Size = new Size(70, 34);
             LblFilterStatus.TabIndex = 3;
             LblFilterStatus.Text = "Status";
-            LblFilterStatus.TextAlign = ContentAlignment.MiddleCenter;
+            LblFilterStatus.TextAlign = ContentAlignment.MiddleRight;
             // 
             // LblStartMode
             // 
             LblStartMode.AutoSize = true;
-            LblStartMode.Location = new Point(253, 0);
+            LblStartMode.Location = new Point(273, 0);
             LblStartMode.Name = "LblStartMode";
             LblStartMode.Size = new Size(38, 30);
             LblStartMode.TabIndex = 4;
@@ -388,6 +394,7 @@
             // ColPath
             // 
             ColPath.DataPropertyName = "Path";
+            ColPath.FillWeight = 150F;
             ColPath.HeaderText = "Path";
             ColPath.Name = "ColPath";
             ColPath.ReadOnly = true;
@@ -430,11 +437,34 @@
             // 
             // StatusBar
             // 
+            StatusBar.Items.AddRange(new ToolStripItem[] { LblStatusServices, LblStatusSeparator, LblStatusServicesRunning });
             StatusBar.Location = new Point(0, 104);
             StatusBar.Name = "StatusBar";
             StatusBar.Size = new Size(1252, 22);
             StatusBar.TabIndex = 9;
             StatusBar.Text = "statusStrip1";
+            // 
+            // LblStatusServices
+            // 
+            LblStatusServices.Image = (Image)resources.GetObject("LblStatusServices.Image");
+            LblStatusServices.Name = "LblStatusServices";
+            LblStatusServices.Size = new Size(120, 17);
+            LblStatusServices.Text = "{0} services loaded";
+            // 
+            // LblStatusSeparator
+            // 
+            LblStatusSeparator.DisplayStyle = ToolStripItemDisplayStyle.Image;
+            LblStatusSeparator.Image = (Image)resources.GetObject("LblStatusSeparator.Image");
+            LblStatusSeparator.Name = "LblStatusSeparator";
+            LblStatusSeparator.Size = new Size(16, 17);
+            LblStatusSeparator.Text = " - ";
+            // 
+            // LblStatusServicesRunning
+            // 
+            LblStatusServicesRunning.Image = (Image)resources.GetObject("LblStatusServicesRunning.Image");
+            LblStatusServicesRunning.Name = "LblStatusServicesRunning";
+            LblStatusServicesRunning.Size = new Size(126, 17);
+            LblStatusServicesRunning.Text = "{0} services running";
             // 
             // FormMain
             // 
@@ -459,6 +489,8 @@
             SplitMain.Panel2.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)SplitMain).EndInit();
             SplitMain.ResumeLayout(false);
+            StatusBar.ResumeLayout(false);
+            StatusBar.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -493,5 +525,8 @@
         private Button BtnCancel;
         private CheckBox ChkStartAsAdm;
         private StatusStrip StatusBar;
+        private ToolStripStatusLabel LblStatusServices;
+        private ToolStripStatusLabel LblStatusServicesRunning;
+        private ToolStripStatusLabel LblStatusSeparator;
     }
 }

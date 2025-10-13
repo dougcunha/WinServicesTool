@@ -48,6 +48,12 @@ public sealed partial class FormMain : Form
     )
     {
         InitializeComponent();
+
+        // Show the app name and version in the title bar
+        Text = $"Windows Services Tool v{Application.ProductVersion}";
+
+        LblStatusServices.Text = "Loading...";
+        LblStatusServicesRunning.Text = "Loading...";
         _appConfig = appConfig;
         _logger = logger;
         _serviceManager = serviceManager;
@@ -55,6 +61,7 @@ public sealed partial class FormMain : Form
         _orchestrator = orchestrator;
         _registryService = registryService;
         _registryEditor = registryEditor;
+
         // Ensure Cancel button starts disabled
         BtnCancel.Enabled = false;
         _appConfig.PropertyChanged += AppConfigChanged;
@@ -382,13 +389,13 @@ public sealed partial class FormMain : Form
                 return;
 
             // Update config with selected columns
-            _appConfig.VisibleColumns = dlg.SelectedColumns;
+            _appConfig.VisibleColumns = dlg.ChosenColumnNames;
             _appConfig.Save();
 
             // Apply visibility
             await ApplyColumnVisibilityAsync();
 
-            AppendLog($"Column visibility updated. {dlg.SelectedColumns.Count} columns visible.");
+            AppendLog($"Column visibility updated. {dlg.ChosenColumnNames.Count} columns visible.");
         }
         catch (Exception ex)
         {
@@ -738,6 +745,8 @@ public sealed partial class FormMain : Form
         }
 
         _servicesList = new BindingList<Service>(working);
+        UpdateServiceStatusLabels();
+        _servicesList.ListChanged += _servicesList_ListChanged;
         serviceBindingSource.DataSource = _servicesList;
         serviceBindingSource.ResetBindings(false);
 
@@ -761,6 +770,15 @@ public sealed partial class FormMain : Form
         GridServs.Update();
         // clear any selection that might leave header visually selected
         GridServs.ClearSelection();
+    }
+
+    private void _servicesList_ListChanged(object? sender, ListChangedEventArgs e)
+        => UpdateServiceStatusLabels();
+
+    private void UpdateServiceStatusLabels()
+    {
+        LblStatusServices.Text = $"Services shown: {_servicesList.Count}";
+        LblStatusServicesRunning.Text = $"Running: {_servicesList.Count(s => s.Status == ServiceControllerStatus.Running)}";
     }
 
     private void BtnChangeStartMode_Click(object? sender, EventArgs e)
