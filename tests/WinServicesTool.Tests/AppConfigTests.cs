@@ -12,7 +12,7 @@ public sealed class AppConfigTests
     public void Save_WhenCalled_PersistedAndLoadedValuesMatch()
     {
         // Arrange
-        var tmpDir = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid().ToString());
+        var tmpDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(tmpDir);
         var prevDir = Environment.CurrentDirectory;
 
@@ -20,14 +20,13 @@ public sealed class AppConfigTests
         {
             Environment.CurrentDirectory = tmpDir;
 
-            var cfg = new AppConfig { AutoWidthColumns = true, ShowPathColumn = false, AlwaysStartsAsAdministrator = true };
+            var cfg = new AppConfig { ShowPathColumn = false, AlwaysStartsAsAdministrator = true };
 
             // Act
             cfg.Save();
 
             // Assert
             var loaded = AppConfig.Load();
-            loaded.AutoWidthColumns.ShouldBe(true);
             loaded.ShowPathColumn.ShouldBe(false);
             loaded.AlwaysStartsAsAdministrator.ShouldBe(true);
         }
@@ -36,7 +35,15 @@ public sealed class AppConfigTests
             Environment.CurrentDirectory = prevDir;
             var f = Path.Combine(tmpDir, "app_config.json");
             if (File.Exists(f)) File.Delete(f);
-            try { Directory.Delete(tmpDir); } catch { }
+
+            try
+            {
+                Directory.Delete(tmpDir);
+            }
+            catch
+            {
+                // ignored
+            }
         }
     }
 }

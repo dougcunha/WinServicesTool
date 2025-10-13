@@ -6,11 +6,6 @@ namespace WinServicesTool.Utils;
 public sealed partial class AppConfig : INotifyPropertyChanged
 {
     /// <summary>
-    /// Gets or sets a value indicating whether the main grid should automatically adjust column widths.
-    /// </summary>
-    public bool AutoWidthColumns { get; set; }
-
-    /// <summary>
     /// Gets or sets a value indicating whether the Path column should be shown in the services grid.
     /// </summary>
     public bool ShowPathColumn { get; set; } = true;

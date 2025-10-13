@@ -63,7 +63,6 @@
             GrpStarting = new GroupBox();
             ChkStartAsAdm = new CheckBox();
             GrpSettingsGrid = new GroupBox();
-            ChkAutoWidth = new CheckBox();
             ChkShowPath = new CheckBox();
             TextLog = new RichTextBox();
             SplitMain = new SplitContainer();
@@ -92,7 +91,7 @@
             TabCtrl.Location = new Point(0, 0);
             TabCtrl.Name = "TabCtrl";
             TabCtrl.SelectedIndex = 0;
-            TabCtrl.Size = new Size(1199, 561);
+            TabCtrl.Size = new Size(1252, 561);
             TabCtrl.TabIndex = 0;
             // 
             // TabMain
@@ -101,7 +100,7 @@
             TabMain.Location = new Point(4, 24);
             TabMain.Name = "TabMain";
             TabMain.Padding = new Padding(3);
-            TabMain.Size = new Size(1191, 533);
+            TabMain.Size = new Size(1244, 533);
             TabMain.TabIndex = 0;
             TabMain.Text = "Services";
             TabMain.UseVisualStyleBackColor = true;
@@ -120,7 +119,7 @@
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel2.Size = new Size(1185, 527);
+            tableLayoutPanel2.Size = new Size(1238, 527);
             tableLayoutPanel2.TabIndex = 0;
             // 
             // tableLayoutPanel3
@@ -144,7 +143,7 @@
             tableLayoutPanel3.Name = "tableLayoutPanel3";
             tableLayoutPanel3.RowCount = 1;
             tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel3.Size = new Size(1179, 44);
+            tableLayoutPanel3.Size = new Size(1232, 44);
             tableLayoutPanel3.TabIndex = 1;
             // 
             // BtnLoad
@@ -263,7 +262,7 @@
             tableLayoutPanelFilter.Name = "tableLayoutPanelFilter";
             tableLayoutPanelFilter.RowCount = 1;
             tableLayoutPanelFilter.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanelFilter.Size = new Size(1179, 34);
+            tableLayoutPanelFilter.Size = new Size(1232, 34);
             tableLayoutPanelFilter.TabIndex = 2;
             // 
             // CbFilterStatus
@@ -297,7 +296,7 @@
             TxtFilter.Margin = new Padding(5, 5, 5, 3);
             TxtFilter.Name = "TxtFilter";
             TxtFilter.PlaceholderText = "Filter text... (ctrl + k)";
-            TxtFilter.Size = new Size(669, 25);
+            TxtFilter.Size = new Size(722, 25);
             TxtFilter.TabIndex = 2;
             // 
             // LblFilterStatus
@@ -329,6 +328,7 @@
             GridServs.AllowUserToOrderColumns = true;
             GridServs.AllowUserToResizeRows = false;
             GridServs.AutoGenerateColumns = false;
+            GridServs.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             GridServs.BorderStyle = BorderStyle.None;
             GridServs.CellBorderStyle = DataGridViewCellBorderStyle.None;
             GridServs.ColumnHeadersHeight = 48;
@@ -341,7 +341,7 @@
             GridServs.ReadOnly = true;
             GridServs.RowHeadersVisible = false;
             GridServs.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            GridServs.Size = new Size(1179, 431);
+            GridServs.Size = new Size(1232, 431);
             GridServs.TabIndex = 0;
             // 
             // ColDisplayName
@@ -350,11 +350,11 @@
             ColDisplayName.HeaderText = "Display Name";
             ColDisplayName.Name = "ColDisplayName";
             ColDisplayName.ReadOnly = true;
-            ColDisplayName.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
             // 
             // ColServiceName
             // 
             ColServiceName.DataPropertyName = "ServiceName";
+            ColServiceName.FillWeight = 80F;
             ColServiceName.HeaderText = "Service Name";
             ColServiceName.Name = "ColServiceName";
             ColServiceName.ReadOnly = true;
@@ -362,6 +362,7 @@
             // ColStatus
             // 
             ColStatus.DataPropertyName = "Status";
+            ColStatus.FillWeight = 50F;
             ColStatus.HeaderText = "Status";
             ColStatus.Name = "ColStatus";
             ColStatus.ReadOnly = true;
@@ -369,10 +370,10 @@
             // ColStartMode
             // 
             ColStartMode.DataPropertyName = "StartMode";
+            ColStartMode.FillWeight = 50F;
             ColStartMode.HeaderText = "Start Mode";
             ColStartMode.Name = "ColStartMode";
             ColStartMode.ReadOnly = true;
-            ColStartMode.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
             // 
             // ColServiceType
             // 
@@ -384,6 +385,7 @@
             // ColCanPauseAndContinue
             // 
             ColCanPauseAndContinue.DataPropertyName = "CanPauseAndContinue";
+            ColCanPauseAndContinue.FillWeight = 40F;
             ColCanPauseAndContinue.HeaderText = "Can Pause\n& Continue";
             ColCanPauseAndContinue.Name = "ColCanPauseAndContinue";
             ColCanPauseAndContinue.ReadOnly = true;
@@ -391,6 +393,7 @@
             // ColCanShutdown
             // 
             ColCanShutdown.DataPropertyName = "CanShutdown";
+            ColCanShutdown.FillWeight = 40F;
             ColCanShutdown.HeaderText = "Can\nShutdown";
             ColCanShutdown.Name = "ColCanShutdown";
             ColCanShutdown.ReadOnly = true;
@@ -398,6 +401,7 @@
             // ColCanStop
             // 
             ColCanStop.DataPropertyName = "CanStop";
+            ColCanStop.FillWeight = 40F;
             ColCanStop.HeaderText = "Can\nStop";
             ColCanStop.Name = "ColCanStop";
             ColCanStop.ReadOnly = true;
@@ -419,7 +423,7 @@
             TabSettings.Location = new Point(4, 24);
             TabSettings.Name = "TabSettings";
             TabSettings.Padding = new Padding(3);
-            TabSettings.Size = new Size(1080, 533);
+            TabSettings.Size = new Size(1244, 533);
             TabSettings.TabIndex = 1;
             TabSettings.Text = "Settings";
             TabSettings.UseVisualStyleBackColor = true;
@@ -439,17 +443,17 @@
             PnlSettings.RowStyles.Add(new RowStyle(SizeType.Absolute, 182F));
             PnlSettings.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             PnlSettings.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
-            PnlSettings.Size = new Size(1074, 527);
+            PnlSettings.Size = new Size(1238, 527);
             PnlSettings.TabIndex = 0;
             // 
             // GrpStarting
             // 
             GrpStarting.Controls.Add(ChkStartAsAdm);
             GrpStarting.FlatStyle = FlatStyle.Flat;
-            GrpStarting.Location = new Point(203, 3);
+            GrpStarting.Location = new Point(223, 3);
             GrpStarting.Name = "GrpStarting";
             GrpStarting.Padding = new Padding(5);
-            GrpStarting.Size = new Size(250, 176);
+            GrpStarting.Size = new Size(214, 176);
             GrpStarting.TabIndex = 1;
             GrpStarting.TabStop = false;
             GrpStarting.Text = "Starting";
@@ -460,14 +464,13 @@
             ChkStartAsAdm.Dock = DockStyle.Top;
             ChkStartAsAdm.Location = new Point(5, 21);
             ChkStartAsAdm.Name = "ChkStartAsAdm";
-            ChkStartAsAdm.Size = new Size(250, 19);
+            ChkStartAsAdm.Size = new Size(204, 19);
             ChkStartAsAdm.TabIndex = 0;
             ChkStartAsAdm.Text = "Always start as administrator";
             ChkStartAsAdm.UseVisualStyleBackColor = true;
             // 
             // GrpSettingsGrid
             // 
-            GrpSettingsGrid.Controls.Add(ChkAutoWidth);
             GrpSettingsGrid.Controls.Add(ChkShowPath);
             GrpSettingsGrid.FlatStyle = FlatStyle.Flat;
             GrpSettingsGrid.Location = new Point(3, 3);
@@ -478,25 +481,13 @@
             GrpSettingsGrid.TabStop = false;
             GrpSettingsGrid.Text = "Grid";
             // 
-            // ChkAutoWidth
-            // 
-            ChkAutoWidth.AutoSize = true;
-            ChkAutoWidth.Dock = DockStyle.Top;
-            ChkAutoWidth.Location = new Point(5, 40);
-            ChkAutoWidth.Name = "ChkAutoWidth";
-            ChkAutoWidth.Size = new Size(184, 19);
-            ChkAutoWidth.TabIndex = 0;
-            ChkAutoWidth.Text = "Columns auto width ";
-            ChkAutoWidth.UseVisualStyleBackColor = true;
-            ChkAutoWidth.CheckedChanged += ChkAutoWidth_CheckedChanged;
-            // 
             // ChkShowPath
             // 
             ChkShowPath.AutoSize = true;
             ChkShowPath.Dock = DockStyle.Top;
             ChkShowPath.Location = new Point(5, 21);
             ChkShowPath.Name = "ChkShowPath";
-            ChkShowPath.Size = new Size(184, 19);
+            ChkShowPath.Size = new Size(190, 19);
             ChkShowPath.TabIndex = 1;
             ChkShowPath.Text = "Show Path column";
             ChkShowPath.UseVisualStyleBackColor = true;
@@ -511,7 +502,7 @@
             TextLog.Margin = new Padding(10);
             TextLog.Name = "TextLog";
             TextLog.ReadOnly = true;
-            TextLog.Size = new Size(1199, 126);
+            TextLog.Size = new Size(1252, 126);
             TextLog.TabIndex = 1;
             TextLog.Text = "";
             // 
@@ -529,7 +520,7 @@
             // SplitMain.Panel2
             // 
             SplitMain.Panel2.Controls.Add(TextLog);
-            SplitMain.Size = new Size(1199, 691);
+            SplitMain.Size = new Size(1252, 691);
             SplitMain.SplitterDistance = 561;
             SplitMain.TabIndex = 2;
             // 
@@ -537,7 +528,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1199, 691);
+            ClientSize = new Size(1252, 691);
             Controls.Add(SplitMain);
             Icon = (Icon)resources.GetObject("$this.Icon");
             KeyPreview = true;
@@ -589,7 +580,6 @@
         private Label LblStartMode;
         private TableLayoutPanel PnlSettings;
         private GroupBox GrpSettingsGrid;
-        private CheckBox ChkAutoWidth;
         private CheckBox ChkShowPath;
         private GroupBox GrpStarting;
         private CheckBox ChkStartAsAdm;

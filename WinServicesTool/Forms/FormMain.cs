@@ -1,8 +1,6 @@
 ﻿using System.ComponentModel;
-using System.Diagnostics;
 using System.ServiceProcess;
 using Microsoft.Extensions.Logging;
-using Microsoft.Win32;
 using WinServicesTool.Extensions;
 using WinServicesTool.Models;
 using WinServicesTool.Services;
@@ -52,7 +50,6 @@ public sealed partial class FormMain : Form
         BtnCancel.Enabled = false;
         _appConfig.PropertyChanged += AppConfigChanged;
         FormClosing += FormPrincipal_FormClosing;
-        GridServs.ColumnWidthChanged += GridServs_ColumnWidthChanged;
         GridServs.ColumnHeaderMouseClick += GridServs_ColumnHeaderMouseClick;
         GridServs.CellFormatting += GridServs_CellFormatting;
         GridServs.CellPainting += GridServs_CellPainting;
@@ -64,7 +61,6 @@ public sealed partial class FormMain : Form
         Load += FormPrincipal_Load;
         Shown += FormPrincipal_Shown;
 
-        ChkAutoWidth.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.AutoWidthColumns), false, DataSourceUpdateMode.OnPropertyChanged);
         ChkShowPath.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.ShowPathColumn), false, DataSourceUpdateMode.OnPropertyChanged);
         ChkStartAsAdm.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.AlwaysStartsAsAdministrator), false, DataSourceUpdateMode.OnPropertyChanged);
 
@@ -117,7 +113,7 @@ public sealed partial class FormMain : Form
         try
         {
             // Restore window position/size/state from config
-            if (_appConfig.WindowWidth > 0 && _appConfig.WindowHeight > 0)
+            if (_appConfig is { WindowWidth: > 0, WindowHeight: > 0 })
             {
                 StartPosition = FormStartPosition.Manual;
                 Bounds = new Rectangle(_appConfig.WindowLeft, _appConfig.WindowTop, _appConfig.WindowWidth, _appConfig.WindowHeight);
@@ -127,16 +123,16 @@ public sealed partial class FormMain : Form
                 WindowState = ws;
 
             // Restore splitter distance if available
-            if (_appConfig.SplitterDistance > 0)
+            if (_appConfig.SplitterDistance <= 0)
+                return;
+
+            try
             {
-                try
-                {
-                    SplitMain.SplitterDistance = _appConfig.SplitterDistance;
-                }
-                catch
-                {
-                    // ignore invalid splitter values
-                }
+                SplitMain.SplitterDistance = _appConfig.SplitterDistance;
+            }
+            catch
+            {
+                // ignore invalid splitter values
             }
         }
         catch
@@ -455,25 +451,11 @@ public sealed partial class FormMain : Form
         {
             _allServices = await _serviceManager.GetServicesAsync();
 
-            // Configure column sizing BEFORE populating data
-            // This is critical for Fill mode to work correctly
-            if (ChkAutoWidth.Checked)
-                ApplyColumnSizing();
-            else
-                // Set all to None before loading saved widths
-                foreach (var col in GridServs.Columns.Cast<DataGridViewColumn>())
-                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
-
             // Update the filter dropdowns to show only values present in the loaded list
             UpdateFilterLists();
 
             // Now populate the grid with data
             ApplyFilterAndSort();
-
-            // Load saved widths only if NOT in auto-width mode (after data is populated)
-            if (!ChkAutoWidth.Checked)
-                LoadColumnWidths();
-
             AppendLog($"Loaded {_allServices.Count} services.");
         }
         catch (Exception ex)
@@ -486,57 +468,6 @@ public sealed partial class FormMain : Form
         {
             BtnLoad.Enabled = true;
             Cursor.Current = previousCursor;
-        }
-    }
-
-    private void ApplyColumnSizing()
-    {
-        // Temporarily suspend layout to avoid flickering
-        GridServs.SuspendLayout();
-
-        try
-        {
-            if (ChkAutoWidth.Checked)
-            {
-                // First, configure non-Fill columns to take minimal space
-                foreach (var col in GridServs.Columns.Cast<DataGridViewColumn>()
-                    .Where(c => c != ColDisplayName && c != ColPath))
-                {
-                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-                    col.MinimumWidth = 50;
-                    col.FillWeight = 50; // Minimal weight so they don't expand
-                }
-
-                // Configure Fill columns to share remaining space
-                ColDisplayName.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-                ColDisplayName.MinimumWidth = 150;
-                ColDisplayName.FillWeight = 100;
-
-                // Path column should also fill when visible
-                if (ColPath.Visible)
-                {
-                    ColPath.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-                    ColPath.MinimumWidth = 200;
-                    ColPath.FillWeight = 150; // More weight for Path (longer content)
-                }
-                else
-                {
-                    // When Path is hidden, ensure it doesn't interfere
-                    ColPath.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
-                    ColPath.FillWeight = 1;
-                }
-            }
-            else
-            {
-                // Manual sizing mode - set all to None to respect saved widths
-                foreach (var col in GridServs.Columns.Cast<DataGridViewColumn>())
-                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
-            }
-        }
-        finally
-        {
-            GridServs.ResumeLayout();
-            GridServs.Refresh();
         }
     }
 
@@ -740,7 +671,7 @@ public sealed partial class FormMain : Form
 
     private void GridServs_ColumnHeaderMouseClick(object? sender, DataGridViewCellMouseEventArgs e)
     {
-        if (e.ColumnIndex < 0 || e.ColumnIndex >= GridServs.Columns.Count)
+        if (e.Button is not MouseButtons.Left || e.ColumnIndex < 0 || e.ColumnIndex >= GridServs.Columns.Count)
             return;
 
         var col = GridServs.Columns[e.ColumnIndex];
@@ -781,29 +712,30 @@ public sealed partial class FormMain : Form
 
             row.DefaultCellStyle.BackColor = item.Status switch
             {
-                ServiceControllerStatus.Running => Color.FromArgb(230, 255, 230),// light green
-                ServiceControllerStatus.Stopped => Color.FromArgb(255, 230, 230),// light red
-                ServiceControllerStatus.Paused => Color.FromArgb(255, 255, 230),// light yellow
-                _ => Color.Empty,
+                ServiceControllerStatus.Running => Color.FromArgb(230, 255, 230), // light green
+                ServiceControllerStatus.Stopped => Color.FromArgb(255, 230, 230), // light red
+                ServiceControllerStatus.Paused => Color.FromArgb(255, 255, 230),  // light yellow
+                var _ => Color.Empty,
             };
 
             // For the Status column, prefix with an emoji
             var col = GridServs.Columns[e.ColumnIndex];
 
-            if (col.DataPropertyName == "Status" && e.Value != null)
-            {
-                var status = (ServiceControllerStatus)e.Value;
-                var prefix = status switch
-                {
-                    ServiceControllerStatus.Running => "🟢 ",
-                    ServiceControllerStatus.Stopped => "🔴 ",
-                    ServiceControllerStatus.Paused => "🟡 ",
-                    _ => "⚪ "
-                };
+            if (col.DataPropertyName != "Status" || e.Value == null)
+                return;
 
-                e.Value = prefix + e.Value;
-                e.FormattingApplied = true;
-            }
+            var status = (ServiceControllerStatus)e.Value;
+
+            var prefix = status switch
+            {
+                ServiceControllerStatus.Running => "🟢 ",
+                ServiceControllerStatus.Stopped => "🔴 ",
+                ServiceControllerStatus.Paused => "🟡 ",
+                var _ => "⚪ "
+            };
+
+            e.Value = prefix + e.Value;
+            e.FormattingApplied = true;
         }
         catch (Exception ex)
         {
@@ -983,70 +915,13 @@ public sealed partial class FormMain : Form
         }
     }
 
-    private void LoadColumnWidths()
-    {
-        if (_appConfig.AutoWidthColumns)
-            return;
-
-        try
-        {
-            var map = ColumnWidthStore.Load();
-
-            if (map == null)
-                return;
-
-            foreach (DataGridViewColumn col in GridServs.Columns)
-            {
-                if (!map.TryGetValue(col.Name, out var w) || w <= 0)
-                    continue;
-
-                col.Width = w;
-                // When width explicitly set, change autosize to None so it persists
-                col.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to load column widths");
-        }
-    }
-
-    // Persist app settings when user toggles checkbox
-    private void ChkAutoWidth_CheckedChanged(object? sender, EventArgs e)
-    {
-        ApplyColumnSizing();
-        
-        if (!ChkAutoWidth.Checked)
-        {
-            LoadColumnWidths();  // Then apply saved widths
-        }
-    }
-
     private async void ChkShowPath_CheckedChanged(object? sender, EventArgs e)
         => await TogglePathColumnVisibilityAsync();
-
-    private void SaveColumnWidths()
-    {
-        try
-        {
-            var map = GridServs.Columns.Cast<DataGridViewColumn>().ToDictionary(c => c.Name, c => c.Width);
-            ColumnWidthStore.Save(map);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to save column widths");
-        }
-    }
-
-    private void GridServs_ColumnWidthChanged(object? sender, DataGridViewColumnEventArgs e)
-        => SaveColumnWidths();
 
     private void FormPrincipal_FormClosing(object? sender, FormClosingEventArgs e)
     {
         if (!_shouldSaveOnClose)
             return;
-
-        SaveColumnWidths();
 
         try
         {
@@ -1105,30 +980,13 @@ public sealed partial class FormMain : Form
                 BtnChangeStartMode_Click(sender, e);
                 e.Handled = true;
                 break;
-
-            case { KeyCode: Keys.F3 }:
-                ApplyColumnSizing();
-                e.Handled = true;
-                break;
         }
     }
 
     private async Task TogglePathColumnVisibilityAsync()
     {
         // Suspend layout to avoid flickering
-        GridServs.SuspendLayout();
-
-        try
-        {
-            ColPath.Visible = _appConfig.ShowPathColumn;
-
-            // Apply column sizing to adjust layout immediately
-            ApplyColumnSizing();
-        }
-        finally
-        {
-            GridServs.ResumeLayout();
-        }
+        ColPath.Visible = _appConfig.ShowPathColumn;
 
         // If hiding the column, we're done
         if (!_appConfig.ShowPathColumn)
@@ -1150,8 +1008,5 @@ public sealed partial class FormMain : Form
 
         // Notify the binding source that data changed
         serviceBindingSource.ResetBindings(false);
-
-        // Reapply column sizing after data is loaded
-        ApplyColumnSizing();
     }
 }
