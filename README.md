@@ -1,3 +1,6 @@
+[![Build and Release](https://github.com/dougcunha/WinServicesTool/actions/workflows/build.yml/badge.svg)](https://github.com/dougcunha/WinServicesTool/actions/workflows/build.yml) [![Tests](https://github.com/dougcunha/WinServicesTool/actions/workflows/tests.yml/badge.svg)](https://github.com/dougcunha/WinServicesTool/actions/workflows/tests.yml)
+
+
 # WinServicesTool
 
 A Windows Services manager tool to easily view and control Windows services (start, stop, restart). Designed as a lightweight GUI utility for power users and administrators who need quick control and organization of services on Windows machines.
