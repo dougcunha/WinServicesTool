@@ -383,7 +383,7 @@ public sealed partial class FormMain : Form
             // Get currently visible columns
             var visibleColumns = _appConfig.VisibleColumns;
 
-            using var dlg = new FormColumnChooser([..GridServs.Columns.Cast<DataGridViewColumn>()], visibleColumns);
+            using var dlg = new FormColumnChooser([.. GridServs.Columns.Cast<DataGridViewColumn>()], visibleColumns);
 
             if (await dlg.ShowDialogAsync(this) != DialogResult.OK)
                 return;

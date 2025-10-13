@@ -6,7 +6,7 @@ public sealed class FormChangeStartMode : Form
 
     public string SelectedMode { get; private set; } = "Manual";
 
-    public FormChangeStartMode(string initialMode = "Manual") 
+    public FormChangeStartMode(string initialMode = "Manual")
         => InitializeComponent(initialMode);
 
     private void InitializeComponent(string initialMode)
@@ -33,12 +33,12 @@ public sealed class FormChangeStartMode : Form
             Width = 296,
             DropDownStyle = ComboBoxStyle.DropDownList
         };
-        
+
         _cmb.Items.AddRange(["Automatic", "Manual", "Disabled"]);
 
         // Try to select the initial mode if present
         var idx = _cmb.Items.IndexOf(initialMode);
-        
+
         _cmb.SelectedIndex = idx >= 0
             ? idx
             : 1; // default Manual
@@ -53,7 +53,7 @@ public sealed class FormChangeStartMode : Form
             Top = 76,
             DialogResult = DialogResult.OK
         };
-        
+
         var btnCancel = new Button
         {
             Text = "Cancel",
