@@ -20,14 +20,14 @@ public sealed class AppConfigTests
         {
             Environment.CurrentDirectory = tmpDir;
 
-            var cfg = new AppConfig { ShowPathColumn = false, AlwaysStartsAsAdministrator = true };
+            var cfg = new AppConfig { VisibleColumns = ["Path"], AlwaysStartsAsAdministrator = true };
 
             // Act
             cfg.Save();
 
             // Assert
             var loaded = AppConfig.Load();
-            loaded.ShowPathColumn.ShouldBe(false);
+            loaded.VisibleColumns.ShouldBe(["Path"]);
             loaded.AlwaysStartsAsAdministrator.ShouldBe(true);
         }
         finally

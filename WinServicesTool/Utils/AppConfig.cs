@@ -6,9 +6,15 @@ namespace WinServicesTool.Utils;
 public sealed partial class AppConfig : INotifyPropertyChanged
 {
     /// <summary>
-    /// Gets or sets a value indicating whether the Path column should be shown in the services grid.
+    /// Gets or sets the list of visible column names in the services grid.
     /// </summary>
-    public bool ShowPathColumn { get; set; } = true;
+    public List<string> VisibleColumns { get; set; } = [];
+
+    /// <summary>
+    /// Gets a value indicating whether the Path column is currently visible in the view.
+    /// </summary>
+    public bool IsPathColumnVisible
+        => VisibleColumns.Count is 0 || VisibleColumns.Contains("ColPath");
 
     /// <summary>
     /// Gets or sets a value indicating whether the application should always start with administrator privileges.

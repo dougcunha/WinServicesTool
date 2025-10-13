@@ -36,7 +36,16 @@ public sealed partial class FormMain : Form
     private CancellationTokenSource? _currentOperationCts;
     private bool _shouldSaveOnClose;
 
-    public FormMain(ILogger<FormMain> logger, IWindowsServiceManager serviceManager, IPrivilegeService privilegeService, IServiceOperationOrchestrator orchestrator, IRegistryService registryService, IRegistryEditor registryEditor, AppConfig appConfig)
+    public FormMain
+    (
+        ILogger<FormMain> logger,
+        IWindowsServiceManager serviceManager,
+        IPrivilegeService privilegeService,
+        IServiceOperationOrchestrator orchestrator,
+        IRegistryService registryService,
+        IRegistryEditor registryEditor,
+        AppConfig appConfig
+    )
     {
         InitializeComponent();
         _appConfig = appConfig;
@@ -61,7 +70,6 @@ public sealed partial class FormMain : Form
         Load += FormPrincipal_Load;
         Shown += FormPrincipal_Shown;
 
-        ChkShowPath.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.ShowPathColumn), false, DataSourceUpdateMode.OnPropertyChanged);
         ChkStartAsAdm.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.AlwaysStartsAsAdministrator), false, DataSourceUpdateMode.OnPropertyChanged);
 
         // Make header selection color match header background so headers don't show as "selected" in blue
@@ -85,13 +93,13 @@ public sealed partial class FormMain : Form
         _privilegeService.AskAndRestartAsAdmin(this, _appConfig.AlwaysStartsAsAdministrator);
     }
 
-    private void AppConfigChanged(object? sender, PropertyChangedEventArgs e)
+    private async void AppConfigChanged(object? sender, PropertyChangedEventArgs e)
     {
         _appConfig.Save();
 
         // Handle dynamic column visibility changes
-        if (e.PropertyName == nameof(AppConfig.ShowPathColumn))
-            _ = TogglePathColumnVisibilityAsync();
+        if (e.PropertyName == nameof(AppConfig.VisibleColumns))
+            await ApplyColumnVisibilityAsync();
     }
 
     // Designer-based filter controls are wired in constructor
@@ -104,8 +112,8 @@ public sealed partial class FormMain : Form
             Close();
         }
 
-        // Defer restoring window bounds/state and splitter to Shown so layout is ready
-        await TogglePathColumnVisibilityAsync();
+        // Apply column visibility from config
+        await ApplyColumnVisibilityAsync();
     }
 
     private void FormPrincipal_Shown(object? sender, EventArgs e)
@@ -299,6 +307,166 @@ public sealed partial class FormMain : Form
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error showing context menu");
+        }
+    }
+
+    private void GridServs_ColumnHeaderMouseClick(object? sender, DataGridViewCellMouseEventArgs e)
+    {
+        // Handle right-click for column visibility
+        if (e.Button == MouseButtons.Right)
+        {
+            try
+            {
+                // Build context menu for column visibility
+                var menu = new ContextMenuStrip();
+
+                var chooseColumnsItem = new ToolStripMenuItem("Choose Visible Columns...") { Enabled = true };
+                chooseColumnsItem.Click += async (_, _) => await ShowColumnChooserDialogAsync();
+                menu.Items.Add(chooseColumnsItem);
+
+                // Show menu at cursor
+                var screenPoint = GridServs.PointToScreen(new Point(e.X, e.Y));
+                menu.Show(screenPoint);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error showing column header context menu");
+            }
+
+            return;
+        }
+
+        // Handle left-click for sorting
+        if (e.Button is not MouseButtons.Left || e.ColumnIndex < 0 || e.ColumnIndex >= GridServs.Columns.Count)
+            return;
+
+        var col = GridServs.Columns[e.ColumnIndex];
+
+        var propName = !string.IsNullOrEmpty(col.DataPropertyName)
+            ? col.DataPropertyName
+            : col.Name;
+
+        if (_sortPropertyName == propName)
+        {
+            _sortOrder = _sortOrder switch
+            {
+                // cycle: None -> Asc -> Desc -> None
+                SortOrder.None => SortOrder.Ascending,
+                SortOrder.Ascending => SortOrder.Descending,
+                var _ => SortOrder.None
+            };
+
+            if (_sortOrder == SortOrder.None)
+                // clear property when cycling back to no-sort
+                _sortPropertyName = null;
+        }
+        else
+        {
+            _sortPropertyName = propName;
+            _sortOrder = SortOrder.Ascending;
+        }
+
+        ApplyFilterAndSort();
+    }
+
+    private async Task ShowColumnChooserDialogAsync()
+    {
+        try
+        {
+            // Get currently visible columns
+            var visibleColumns = _appConfig.VisibleColumns;
+
+            using var dlg = new FormColumnChooser([..GridServs.Columns.Cast<DataGridViewColumn>()], visibleColumns);
+
+            if (await dlg.ShowDialogAsync(this) != DialogResult.OK)
+                return;
+
+            // Update config with selected columns
+            _appConfig.VisibleColumns = dlg.SelectedColumns;
+            _appConfig.Save();
+
+            // Apply visibility
+            await ApplyColumnVisibilityAsync();
+
+            AppendLog($"Column visibility updated. {dlg.SelectedColumns.Count} columns visible.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error showing column chooser dialog");
+            AppendLog($"Failed to update column visibility: {ex.Message}", LogLevel.Error);
+        }
+    }
+
+    private async Task LoadServicePathsAsync()
+    {
+        try
+        {
+            // Get services that don't have paths loaded yet
+            var servicesToUpdate = _servicesList.Where(s => string.IsNullOrEmpty(s.Path)).ToList();
+
+            if (servicesToUpdate.Count == 0)
+            {
+                AppendLog("All service paths already loaded.");
+
+                return;
+            }
+
+            AppendLog($"Loading paths for {servicesToUpdate.Count} services...");
+
+            // Run the path loading in a background thread to avoid UI freezing
+            await Task.Run(() =>
+            {
+                using var pathHelper = new ServicePathHelper();
+
+                foreach (var service in servicesToUpdate)
+                {
+                    try
+                    {
+                        service.Path = pathHelper.GetExecutablePath(service.ServiceName) ?? string.Empty;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to get path for service {ServiceName}", service.ServiceName);
+                        service.Path = string.Empty;
+                    }
+                }
+            });
+
+            // Notify the binding source that data changed
+            this.InvokeIfRequired(() =>
+            {
+                serviceBindingSource.ResetBindings(false);
+                AppendLog($"Loaded paths for {servicesToUpdate.Count} services.");
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading service paths");
+            AppendLog($"Failed to load service paths: {ex.Message}", LogLevel.Error);
+        }
+    }
+
+    private async Task ApplyColumnVisibilityAsync()
+    {
+        try
+        {
+            var visibleColumns = _appConfig.VisibleColumns;
+
+            if (visibleColumns.Count == 0)
+            {
+                await LoadServicePathsAsync();
+
+                return;
+            }
+
+            foreach (DataGridViewColumn col in GridServs.Columns)
+                col.Visible = visibleColumns.Contains(col.Name);
+
+            await LoadServicePathsAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error applying column visibility");
         }
     }
 
@@ -608,7 +776,7 @@ public sealed partial class FormMain : Form
             ServiceStartMode.Automatic => "Automatic",
             ServiceStartMode.Manual => "Manual",
             ServiceStartMode.Disabled => "Disabled",
-            _ => "Manual",
+            var _ => "Manual",
         };
 
         using var dlg = new FormChangeStartMode(initial);
@@ -637,7 +805,7 @@ public sealed partial class FormMain : Form
                         "Automatic" => ServiceStartMode.Automatic,
                         "Manual" => ServiceStartMode.Manual,
                         "Disabled" => ServiceStartMode.Disabled,
-                        _ => serv.StartMode
+                        var _ => serv.StartMode
                     };
 
                     var okMsg = $"[{serv.ServiceName}] StartType defined as {newMode} (value {startValue}).";
@@ -666,40 +834,8 @@ public sealed partial class FormMain : Form
             "Automatic" => 2,
             "Manual" => 3,
             "Disabled" => 4,
-            _ => 3,
+            var _ => 3,
         };
-
-    private void GridServs_ColumnHeaderMouseClick(object? sender, DataGridViewCellMouseEventArgs e)
-    {
-        if (e.Button is not MouseButtons.Left || e.ColumnIndex < 0 || e.ColumnIndex >= GridServs.Columns.Count)
-            return;
-
-        var col = GridServs.Columns[e.ColumnIndex];
-
-        var propName = !string.IsNullOrEmpty(col.DataPropertyName)
-            ? col.DataPropertyName
-            : col.Name;
-
-        if (_sortPropertyName == propName)
-        {
-            _sortOrder = _sortOrder switch
-            {
-                // cycle: None -> Asc -> Desc -> None
-                SortOrder.None => SortOrder.Ascending,
-                SortOrder.Ascending => SortOrder.Descending,
-                _ => SortOrder.None
-            };
-            if (_sortOrder == SortOrder.None)
-                // clear property when cycling back to no-sort
-                _sortPropertyName = null;
-        }
-        else
-        {
-            _sortPropertyName = propName;
-        }
-
-        ApplyFilterAndSort();
-    }
 
     private void GridServs_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
     {
@@ -915,9 +1051,6 @@ public sealed partial class FormMain : Form
         }
     }
 
-    private async void ChkShowPath_CheckedChanged(object? sender, EventArgs e)
-        => await TogglePathColumnVisibilityAsync();
-
     private void FormPrincipal_FormClosing(object? sender, FormClosingEventArgs e)
     {
         if (!_shouldSaveOnClose)
@@ -981,32 +1114,5 @@ public sealed partial class FormMain : Form
                 e.Handled = true;
                 break;
         }
-    }
-
-    private async Task TogglePathColumnVisibilityAsync()
-    {
-        // Suspend layout to avoid flickering
-        ColPath.Visible = _appConfig.ShowPathColumn;
-
-        // If hiding the column, we're done
-        if (!_appConfig.ShowPathColumn)
-            return;
-
-        var servicesToUpdate = _servicesList.Where(s => string.IsNullOrEmpty(s.Path)).ToList();
-
-        if (servicesToUpdate.Count == 0)
-            return;
-
-        // Run the path loading in a background thread to avoid UI freezing
-        await Task.Run(() =>
-        {
-            using var pathHelper = new ServicePathHelper();
-
-            foreach (var service in servicesToUpdate)
-                service.Path = pathHelper.GetExecutablePath(service.ServiceName) ?? string.Empty;
-        });
-
-        // Notify the binding source that data changed
-        serviceBindingSource.ResetBindings(false);
     }
 }
