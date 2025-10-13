@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace WinServicesTool.Utils;
 
@@ -13,6 +14,7 @@ public sealed partial class AppConfig : INotifyPropertyChanged
     /// <summary>
     /// Gets a value indicating whether the Path column is currently visible in the view.
     /// </summary>
+    [JsonIgnore]
     public bool IsPathColumnVisible
         => VisibleColumns.Count is 0 || VisibleColumns.Contains("ColPath");
 
