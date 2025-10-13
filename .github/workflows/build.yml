@@ -1,0 +1,149 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - master
+      - main
+      - develop
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - master
+      - main
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  PROJECT_PATH: 'WinServicesTool/WinServicesTool.csproj'
+  OUTPUT_NAME: 'WinServicesTool'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.PROJECT_PATH }}
+
+    - name: Build
+      run: dotnet build ${{ env.PROJECT_PATH }} -c Release --no-restore
+
+    - name: Run tests
+      run: dotnet test tests/WinServicesTool.Tests/WinServicesTool.Tests.csproj -c Release --no-build --verbosity normal
+
+    - name: Publish single-file executable
+      shell: pwsh
+      run: |
+        dotnet publish ${{ env.PROJECT_PATH }} `
+          -c Release `
+          -r win-x64 `
+          --self-contained true `
+          -p:PublishSingleFile=true `
+          -p:IncludeNativeLibrariesForSelfExtract=true `
+          -p:EnableCompressionInSingleFile=true `
+          -p:DebugType=None `
+          -p:DebugSymbols=false `
+          -o publish
+
+    - name: Get version info
+      id: version
+      shell: pwsh
+      run: |
+        if ($env:GITHUB_REF -match '^refs/tags/v(.+)$') {
+          $version = $Matches[1]
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "IS_TAG=true" >> $env:GITHUB_OUTPUT
+          echo "Release version: $version"
+        } else {
+          $sha = $env:GITHUB_SHA.Substring(0, 7)
+          $version = "build-$sha"
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "IS_TAG=false" >> $env:GITHUB_OUTPUT
+          echo "Build version: $version"
+        }
+
+    - name: Create artifact archive
+      shell: pwsh
+      run: |
+        $files = @(
+          'publish/${{ env.OUTPUT_NAME }}.exe',
+          'WinServicesTool/nlog.config',
+          'LICENSE.txt',
+          'README.md'
+        )
+        
+        New-Item -ItemType Directory -Force -Path artifact
+        foreach ($file in $files) {
+          if (Test-Path $file) {
+            Copy-Item $file -Destination artifact/
+          }
+        }
+        
+        Compress-Archive -Path artifact/* -DestinationPath ${{ env.OUTPUT_NAME }}-${{ steps.version.outputs.VERSION }}.zip
+
+    - name: Upload build artifact
+      if: steps.version.outputs.IS_TAG == 'false'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.OUTPUT_NAME }}-${{ steps.version.outputs.VERSION }}
+        path: ${{ env.OUTPUT_NAME }}-${{ steps.version.outputs.VERSION }}.zip
+        retention-days: 30
+
+    - name: Create GitHub Release
+      if: steps.version.outputs.IS_TAG == 'true'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{ env.OUTPUT_NAME }}-${{ steps.version.outputs.VERSION }}.zip
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+        body: |
+          ## WinServicesTool v${{ steps.version.outputs.VERSION }}
+          
+          ### 📦 Download
+          Download the single-file executable from the assets below.
+          
+          ### ⚠️ Requirements
+          - Windows 10/11 or Windows Server 2019+
+          - Administrator privileges required for service operations
+          
+          ### 🚀 Usage
+          1. Extract the ZIP file
+          2. Run `WinServicesTool.exe` as Administrator
+          3. Click "Load Services" to start
+          
+          ### 📝 Release Notes
+          See below for auto-generated release notes from commits.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload release artifact summary
+      if: steps.version.outputs.IS_TAG == 'true'
+      shell: pwsh
+      run: |
+        $size = (Get-Item "${{ env.OUTPUT_NAME }}-${{ steps.version.outputs.VERSION }}.zip").Length
+        $sizeMB = [math]::Round($size / 1MB, 2)
+        echo "✅ Release created: v${{ steps.version.outputs.VERSION }}" >> $env:GITHUB_STEP_SUMMARY
+        echo "📦 Package size: $sizeMB MB" >> $env:GITHUB_STEP_SUMMARY
+        echo "🔗 [View Release](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.VERSION }})" >> $env:GITHUB_STEP_SUMMARY
+
+    - name: Upload build artifact summary
+      if: steps.version.outputs.IS_TAG == 'false'
+      shell: pwsh
+      run: |
+        $size = (Get-Item "${{ env.OUTPUT_NAME }}-${{ steps.version.outputs.VERSION }}.zip").Length
+        $sizeMB = [math]::Round($size / 1MB, 2)
+        echo "✅ Build artifact created: ${{ steps.version.outputs.VERSION }}" >> $env:GITHUB_STEP_SUMMARY
+        echo "📦 Package size: $sizeMB MB" >> $env:GITHUB_STEP_SUMMARY
+        echo "⏱️ Retention: 30 days" >> $env:GITHUB_STEP_SUMMARY
