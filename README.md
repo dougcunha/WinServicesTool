@@ -29,13 +29,7 @@ A Windows Services manager tool to easily view and control Windows services (sta
 
 ## Screenshots
 
-Add screenshots here to illustrate the app. Example suggestions:
-
-- Main services list with filters
-- Favorites / Saved Services tab
-- Start/Stop confirmation dialog
-
-You can place images in the repository (e.g. `docs/screenshots/`) and reference them here.
+![Main window](WinServicesTool/Screenshots/WinServicesTool.png)
 
 ## Requirements
 

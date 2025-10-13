@@ -37,177 +37,82 @@ The content is organized as follows:
 
 # Directory Structure
 ```
-README.md
-TODO.md
+.editorconfig
+tests/WinServicesTool.Tests/AppConfigTests.cs
+tests/WinServicesTool.Tests/FormMainRegistryTests.cs
+tests/WinServicesTool.Tests/ServiceOperationOrchestratorAdditionalTests.cs
+tests/WinServicesTool.Tests/ServiceOperationOrchestratorTests.cs
+tests/WinServicesTool.Tests/ServiceTypeHelperTests.cs
+tests/WinServicesTool.Tests/WinServicesTool.Tests.csproj
 WinServicesTool.slnx
 WinServicesTool/Extensions/ControlExtensions.cs
 WinServicesTool/FodyWeavers.xml
 WinServicesTool/Forms/FormChangeStartMode.cs
+WinServicesTool/Forms/FormColumnChooser.cs
 WinServicesTool/Forms/FormMain.cs
 WinServicesTool/Forms/FormMain.Designer.cs
 WinServicesTool/Models/Service.cs
 WinServicesTool/Models/ServiceTypeEx.cs
 WinServicesTool/nlog.config
 WinServicesTool/Program.cs
+WinServicesTool/Properties/AssemblyInternals.cs
 WinServicesTool/Properties/DataSources/WinServicesTool.Models.Service.datasource
+WinServicesTool/Properties/Resources.Designer.cs
 WinServicesTool/Services/IPrivilegeService.cs
+WinServicesTool/Services/IProcessLauncher.cs
+WinServicesTool/Services/IRegistryEditor.cs
+WinServicesTool/Services/IRegistryService.cs
+WinServicesTool/Services/IServiceOperationOrchestrator.cs
 WinServicesTool/Services/IWindowsServiceManager.cs
 WinServicesTool/Services/PrivilegeService.cs
+WinServicesTool/Services/ProcessLauncher.cs
+WinServicesTool/Services/RegistryEditor.cs
+WinServicesTool/Services/RegistryService.cs
 WinServicesTool/Services/ServiceNativeHelper.cs
+WinServicesTool/Services/ServiceOperationOrchestrator.cs
 WinServicesTool/Services/WindowsServiceManager.cs
 WinServicesTool/Utils/AppConfig.cs
-WinServicesTool/Utils/ColumnWidthStore.cs
 WinServicesTool/WinServicesTool.csproj
 ```
 
 # Files
 
-## File: TODO.md
-````markdown
-# TODO - WinServicesTool
+## File: tests/WinServicesTool.Tests/WinServicesTool.Tests.csproj
+```
+<Project Sdk="Microsoft.NET.Sdk">
 
-This file lists features and implementation tasks derived from the project's README. Use it to track development progress.
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows7.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
 
-> Status: working draft. Update tasks, priorities and assignees as work progresses.
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
+    <PackageReference Include="xunit" Version="2.4.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5" />
+    <PackageReference Include="Shouldly" Version="4.3.0" />
+    <PackageReference Include="NSubstitute" Version="4.4.0" />
+  </ItemGroup>
 
----
+  <ItemGroup>
+    <ProjectReference Include="..\..\WinServicesTool\WinServicesTool.csproj" />
+  </ItemGroup>
 
-## High level roadmap
-
-1. Core service discovery and UI
-2. Service control (start/stop/restart) with secure handling
-3. Filtering, sorting and search
-4. Saved services (Favorites) with export/import
-5. Editing and removal of services (where permitted)
-6. Logging, CI and packaging
-
----
-
-## Tasks (feature-driven)
-
-### 1) Service listing (Core)
-
-- [x] Implement service enumeration using `System.ServiceProcess.ServiceController`
-- [x] Show essential columns: Service Name, Display Name, Status, Startup Type
-- [ ] Paging/virtualization for large lists (performance)
-- [x] Auto-adjust DataGridView column widths to use available monitor space (Fill and AllCells mode)
-- [x] Allow manual column resize and persist column widths between sessions (user settings or JSON)
-- Priority: High
-
-### 3) Filter, Search and Sort
-
-- [X] Text filter by Service Name or Display Name (contains / starts-with)
-- [X] Status filter (Running, Stopped, Paused, All)
-- [X] Sort by Name, Status, Startup Type (clickable column headers)
-- [ ] Preserve sorting/filter selections between app sessions (optional)
-- Priority: High
-
-### 4) Edit service properties
-
-- [ ] Allow editing Display Name where permitted
-- [ ] Allow changing Startup Type (Automatic, Manual, Disabled) where permitted
-- [ ] Validate changes and show confirmations
-- Priority: Medium
-
-### 5) Remove / Uninstall service
-
-- [ ] Provide a controlled flow to uninstall/remove a service (with multiple confirmations)
-- [ ] Check permissions and refuse action when not allowed
-- [ ] Optionally backup current configuration before removal
-- Priority: Low (dangerous)
-
-### 6) Saved Services (Favorites)
-
-- [ ] Add UI to add/remove services to a saved/favorites list
-- [ ] Add a dedicated tab that displays only saved services
-- [ ] Persist saved lists locally (JSON serialization)
-- [ ] Support multiple named lists (profiles)
-- Priority: High
-
-### 7) Export / Import saved lists
-
-- [ ] Export favorites list to JSON file (with simple schema)
-- [ ] Import favorites list and validate entries (skip missing services)
-- [ ] Provide an import preview and undo option
-- Priority: Medium
-
-### 8) Logging & Diagnostics
-
-- [X] Improve NLog configuration and include a UI-accessible log viewer
-- Priority: Medium
-
-### 9) Permissions & Elevation UX
-
-- [X] Detect whether the app is running elevated
-- [X] Present a clear indication when running without admin rights
-- [X] Provide quick guidance / button to restart with elevation
-- Priority: High
-
-### 10) CI / Packaging / Releases
-
-- [ ] Add GitHub Actions to build on push and PR
-- [ ] Produce release artifacts (zip) and optionally installer
-- [ ] Tagging and release workflow configured
-- Priority: Medium
-
-### 11) Localization
-
-- [ ] Prepare UI for localization (resource files)
-- [ ] Add PT-BR and EN translations for core UI strings
-- Priority: Low
-
----
-
-## File format and conventions
-
-- Saved lists: JSON array of objects: { "ServiceName": "", "DisplayName": "", "Notes": "" }
-- Tests should avoid requiring elevation; mock System.ServiceProcess where possible.
-
----
-
-## Example implementation milestones
-
-- Milestone 1 (MVP): Tasks 1, 2, 3, 6, 9
-- Milestone 2: Tasks 4, 7, 8, 10
-- Milestone 3: Tasks 11
-
----
-
-## How to update this TODO
-
-Edit this file and use checkboxes to mark progress. Add small, focused subtasks and reference PR numbers when tasks are completed.
-````
-
-## File: WinServicesTool.slnx
-````
-<Solution>
-  <Project Path="WinServicesTool/WinServicesTool.csproj" />
-</Solution>
-````
-
-## File: WinServicesTool/Extensions/ControlExtensions.cs
-````csharp
-/// <summary>
-/// Helper extension methods for Control to simplify thread-safe UI actions.
-/// </summary>
-internal static class ControlExtensions
-⋮----
-/// Invokes the given action on the control's thread if required.
-⋮----
-public static void InvokeIfRequired(this Control? control, Action action)
-⋮----
-control.Invoke(action);
-````
+</Project>
+```
 
 ## File: WinServicesTool/FodyWeavers.xml
-````xml
+```xml
 <Weavers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="FodyWeavers.xsd">
   <PropertyChanged />
 </Weavers>
-````
+```
 
 ## File: WinServicesTool/nlog.config
-````
+```
 <?xml version="1.0" encoding="utf-8" ?>
 <nlog xmlns="http://www.nlog-project.org/schemas/NLog.xsd"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -223,10 +128,15 @@ control.Invoke(action);
     <!-- <logger name="*" levels="Error" writeTo="email" /> -->
   </rules>
 </nlog>
-````
+```
+
+## File: WinServicesTool/Properties/AssemblyInternals.cs
+```csharp
+
+```
 
 ## File: WinServicesTool/Properties/DataSources/WinServicesTool.Models.Service.datasource
-````
+```
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     This file is automatically generated by Visual Studio. It is
@@ -237,193 +147,329 @@ control.Invoke(action);
 <GenericObjectDataSource DisplayName="Service" Version="1.0" xmlns="urn:schemas-microsoft-com:xml-msdatasource">
   <TypeInfo>WinServicesTool.Models.Service, WinServicesTool, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null</TypeInfo>
 </GenericObjectDataSource>
-````
-
-## File: WinServicesTool/Services/IWindowsServiceManager.cs
-````csharp
-/// <summary>
-/// Abstraction for operations that enumerate and manipulate Windows services.
-/// </summary>
-public interface IWindowsServiceManager
-⋮----
-/// Enumerates known services and returns a list of lightweight <see cref="Models.Service"/> models.
-⋮----
-Task<List<Models.Service>> GetServicesAsync();
-⋮----
-/// Starts the specified service by service name and waits until the service is running or timeout.
-⋮----
-Task StartServiceAsync(string serviceName);
-⋮----
-/// Stops the specified service and waits until stopped or timeout.
-⋮----
-Task StopServiceAsync(string serviceName);
-````
-
-## File: README.md
-````markdown
-# WinServicesTool
-
-A Windows Services manager tool to easily view and control Windows services (start, stop, restart). Designed as a lightweight GUI utility for power users and administrators who need quick control and organization of services on Windows machines.
-
-## Table of Contents
-
-- [Features](#features)
-- [Screenshots](#screenshots)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Saved Services List (Favorites)](#saved-services-list-favorites)
-- [Permissions](#permissions)
-- [Development](#development)
-- [Contributing](#contributing)
-- [License](#license)
-
-## Features
-
-- List all installed Windows services with their current status.
-- Start, Stop and Restart services from the UI.
-- Filter and search services by name, display name or status.
-- Sort services by name, status or startup type.
-- Edit service properties (display name, startup type) where supported.
-- Remove/uninstall entries (where permitted by Windows and the current user privileges).
-- Save a custom list of services (favorites) to quickly access important services in a dedicated tab.
-- Export/Import saved lists for sharing or backups.
-- Simple, responsive UI with logging support (NLog) for troubleshooting.
-
-## Screenshots
-
-Add screenshots here to illustrate the app. Example suggestions:
-
-- Main services list with filters
-- Favorites / Saved Services tab
-- Start/Stop confirmation dialog
-
-You can place images in the repository (e.g. `docs/screenshots/`) and reference them here.
-
-## Requirements
-
-- Windows 10 or newer (desktop) with .NET 10.0 runtime installed.
-- Administrator privileges to control services (start/stop/restart/edit/remove).
-- Optional: Visual Studio 2022/2026 or .NET SDK to build from source.
-
-## Installation
-
-There are two main ways to run WinServicesTool:
-
-1. Download a prebuilt binary (from Releases) and run the executable.
-2. Build from source.
-
-Build from source
-
-1. Clone the repository:
-
-    ```powershell
-    git clone https://github.com/dougcunha/WinServicesTool.git
-    cd WinServicesTool
-    ```
-
-2. Open the solution `WinServicesTool.slnx` in Visual Studio or build with the .NET SDK:
-
-    ```powershell
-    dotnet build WinServicesTool/WinServicesTool.csproj -c Release
-    ```
-
-3. The compiled executable will be under `WinServicesTool/bin/Debug/net10.0-windows/` (or `Release`).
-
-## Usage
-
-1. Run the `WinServicesTool.exe` as administrator:
-
-    ```powershell
-    # Right-click the executable and choose "Run as administrator" or
-    Start-Process -FilePath .\WinServicesTool.exe -Verb RunAs
-    ```
-
-2. Browse the list of services.
-3. Use the filter box to find services by name or status.
-4. Select a service and use the Start / Stop / Restart buttons.
-5. To persist a set of services, add them to the "Saved Services" tab (Favorites).
-
-Notes
-
-- Some operations (like uninstalling or changing startup type) may be blocked by Windows or require elevated permissions.
-- The app uses `System.ServiceProcess.ServiceController` and standard Windows APIs — behavior follows Windows service security rules.
-
-## Saved Services List (Favorites)
-
-You can create and maintain a list of frequently used services. Features:
-
-- Add / Remove services from your saved list.
-- Quickly switch to the saved list tab to view only those services.
-- Export saved lists to a file for backup or sharing.
-- Import saved lists to restore or load a friend's / team list.
-
-File format for Export/Import
-
-- The app serializes the saved list into a simple JSON file with service names and optional metadata.
-
-## Permissions
-
-The tool requires administrator rights to perform most actions on services. Without elevated permissions the app will still list services but will be limited to read-only operations for many services.
-
-Tips to run as admin:
-
-- Right-click the .exe and choose "Run as administrator".
-- Use PowerShell to start with elevation: `Start-Process -FilePath .\WinServicesTool.exe -Verb RunAs`.
-
-## Development
-
-Project details:
-
-- Language: C#
-- Framework: .NET 10.0 (Windows Desktop)
-- Logging: NLog
-
-Open the solution in Visual Studio and run.
-
-Recommended tasks
-
-- Run the project from Visual Studio with Administrator privileges when testing service control features.
-- Modify `nlog.config` to adjust logging verbosity and targets.
-
-Building and running from command-line
-
-```powershell
-dotnet build WinServicesTool/WinServicesTool.csproj -c Debug
-Start-Process -FilePath "WinServicesTool/bin/Debug/net10.0-windows/WinServicesTool.exe" -Verb RunAs
 ```
 
-## Contributing
+## File: WinServicesTool/Properties/Resources.Designer.cs
+```csharp
+//------------------------------------------------------------------------------
+// <auto-generated>
+//     This code was generated by a tool.
+//     Runtime Version:4.0.30319.42000
+//
+//     Changes to this file may cause incorrect behavior and will be lost if
+//     the code is regenerated.
+// </auto-generated>
+⋮----
+/// <summary>
+///   A strongly-typed resource class, for looking up localized strings, etc.
+/// </summary>
+// This class was auto-generated by the StronglyTypedResourceBuilder
+// class via a tool like ResGen or Visual Studio.
+// To add or remove a member, edit your .ResX file then rerun ResGen
+// with the /str option, or rebuild your VS project.
+⋮----
+internal class Resources {
+⋮----
+///   Returns the cached ResourceManager instance used by this class.
+⋮----
+if (object.ReferenceEquals(resourceMan, null)) {
+⋮----
+///   Overrides the current thread's CurrentUICulture property for all
+///   resource lookups using this strongly typed resource class.
+```
 
-Contributions are welcome. Please follow these guidelines:
+## File: WinServicesTool/Services/IProcessLauncher.cs
+```csharp
+/// <summary>
+/// Abstraction for launching processes so calls can be mocked in tests.
+/// </summary>
+public interface IProcessLauncher
+⋮----
+/// Starts a process given a filename and optional start info.
+⋮----
+Process? Start(string fileName);
+```
 
-1. Fork the repository and create a feature branch.
-2. Keep commits small and focused.
-3. Add tests where feasible and run them locally.
-4. Open a pull request describing the change and why it's needed.
+## File: WinServicesTool/Services/IRegistryEditor.cs
+```csharp
+/// <summary>
+/// Abstraction around registry edits used by the UI.
+/// </summary>
+public interface IRegistryEditor
+⋮----
+/// Sets the regedit LastKey value for the current user.
+⋮----
+void SetLastKey(string registryPath);
+⋮----
+/// Sets a DWORD value under HKEY_LOCAL_MACHINE for the specified subkey path.
+/// The subKeyPath should be relative to the root of HKLM (for example: "SYSTEM\\CurrentControlSet\\Services\\MyService").
+⋮----
+void SetDwordInLocalMachine(string subKeyPath, string valueName, int value);
+```
 
-Suggested improvements
+## File: WinServicesTool/Services/IRegistryService.cs
+```csharp
+/// <summary>
+/// Abstraction for operations against the Windows Registry used by the UI.
+/// </summary>
+public interface IRegistryService
+⋮----
+/// Sets the LastKey value for Regedit so regedit opens at the specified path.
+⋮----
+void SetRegeditLastKey(string registryPath);
+```
 
-- Add unit/integration tests for non-UI logic.
-- Add automated packaging and CI (GitHub Actions) to build releases.
-- Add localization support for multiple languages.
+## File: WinServicesTool/Services/ProcessLauncher.cs
+```csharp
+public sealed class ProcessLauncher : IProcessLauncher
+⋮----
+public Process? Start(string fileName)
+⋮----
+var psi = new ProcessStartInfo
+⋮----
+return Process.Start(psi);
+```
 
-Code of Conduct
+## File: tests/WinServicesTool.Tests/FormMainRegistryTests.cs
+```csharp
+public sealed class FormMainRegistryTests
+⋮----
+public void OpenServiceInRegistry_Invokes_RegistryService_With_Correct_Path()
+⋮----
+// Arrange
+⋮----
+var cfg = new AppConfig();
+// Create FormMain with mocked dependencies
+var form = new FormMain(logger, winSvcMgr, priv, orchestrator, registry, registryEditor, cfg);
+⋮----
+// Act
+form.OpenServiceInRegistry(serviceName);
+// Assert: registry service was asked to open the expected path
+registry.Received(1).SetRegeditLastKey(expectedPath);
+```
 
-This project follows a standard open-source code of conduct. Be respectful and inclusive.
+## File: tests/WinServicesTool.Tests/ServiceTypeHelperTests.cs
+```csharp
+public sealed class ServiceTypeHelperTests
+⋮----
+public void Describe_KnownType_ReturnsNonEmptyString()
+⋮----
+// Arrange
+⋮----
+// Act
+var desc = ServiceTypeHelper.Describe(knownType);
+// Assert
+desc.ShouldNotBeNullOrEmpty();
+```
 
-## Security
+## File: WinServicesTool.slnx
+```
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/WinServicesTool.Tests/WinServicesTool.Tests.csproj" />
+  </Folder>
+  <Project Path="WinServicesTool/WinServicesTool.csproj" />
+</Solution>
+```
 
-- The application uses Windows service APIs and requires admin rights for control operations; never run untrusted builds with elevated privileges.
-- Report security issues via the repository's issue tracker and avoid disclosing them publicly until fixed.
+## File: WinServicesTool/Extensions/ControlExtensions.cs
+```csharp
+/// <summary>
+/// Helper extension methods for Control to simplify thread-safe UI actions.
+/// </summary>
+internal static class ControlExtensions
+⋮----
+/// Invokes the given action on the control's thread if required.
+⋮----
+public static void InvokeIfRequired(this Control? control, Action action)
+⋮----
+control.Invoke(action);
+```
 
-## License
+## File: WinServicesTool/Forms/FormColumnChooser.cs
+```csharp
+/// <summary>
+/// Dialog for selecting visible columns in the services grid.
+/// </summary>
+public sealed class FormColumnChooser : Form
+⋮----
+/// Gets the list of selected column names after dialog is closed with OK.
+⋮----
+/// Creates a new column chooser dialog.
+⋮----
+/// <param name="allColumns">All available column names.</param>
+/// <param name="visibleColumns">Currently visible column names.</param>
+⋮----
+private void InitializeComponent(List<DataGridViewColumn> allColumns, List<string> visibleColumnsName)
+⋮----
+ClientSize = new Size(380, 400);
+var columns = allColumns.ConvertAll(col => new { col.Name, Caption = col.HeaderText.Replace('\n', ' ') });
+var lbl = new Label
+⋮----
+_lstColumns = new CheckedListBox
+⋮----
+// Add all columns to the list
+⋮----
+var isChecked = visibleColumnsName.Count is 0 || visibleColumnsName.Contains(col.Name);
+_lstColumns.Items.Add(col.Caption, isChecked);
+⋮----
+var btnSelectAll = new Button
+⋮----
+var btnDeselectAll = new Button
+⋮----
+var btnOk = new Button
+⋮----
+var btnCancel = new Button
+⋮----
+_lstColumns.SetItemChecked(i, true);
+⋮----
+_lstColumns.SetItemChecked(i, false);
+⋮----
+// Map checked captions back to column names
+⋮----
+.Select(i => columns[i].Name)
+.ToList();
+⋮----
+Controls.Add(lbl);
+Controls.Add(_lstColumns);
+Controls.Add(btnSelectAll);
+Controls.Add(btnDeselectAll);
+Controls.Add(btnOk);
+Controls.Add(btnCancel);
+```
 
-This project is licensed under the terms in `LICENSE.txt`.
-````
+## File: WinServicesTool/Services/RegistryEditor.cs
+```csharp
+public sealed class RegistryEditor : IRegistryEditor
+⋮----
+public void SetLastKey(string registryPath)
+⋮----
+using var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Applets\Regedit") ?? throw new InvalidOperationException("Unable to create or open Regedit LastKey location.");
+key.SetValue("LastKey", registryPath, RegistryValueKind.String);
+⋮----
+public void SetDwordInLocalMachine(string subKeyPath, string valueName, int value)
+⋮----
+if (string.IsNullOrEmpty(subKeyPath))
+throw new ArgumentException("subKeyPath must be provided", nameof(subKeyPath));
+using var key = Registry.LocalMachine.OpenSubKey(subKeyPath, writable: true) ?? throw new InvalidOperationException($"HKLM\\{subKeyPath} not found");
+key.SetValue(valueName, value, RegistryValueKind.DWord);
+```
+
+## File: WinServicesTool/Services/RegistryService.cs
+```csharp
+/// <summary>
+/// Concrete implementation of <see cref="IRegistryService"/> which performs small
+/// registry writes and launches regedit.exe so the UI can navigate to a service key.
+/// </summary>
+public sealed class RegistryService(IRegistryEditor editor, IProcessLauncher launcher) : IRegistryService
+⋮----
+private readonly IRegistryEditor _editor = editor;
+private readonly IProcessLauncher _launcher = launcher;
+/// <inheritdoc />
+public void SetRegeditLastKey(string registryPath)
+⋮----
+if (string.IsNullOrEmpty(registryPath))
+throw new ArgumentException("registryPath must be provided", nameof(registryPath));
+_editor.SetLastKey(registryPath);
+// Give the registry a short moment to persist before launching regedit
+Thread.Sleep(100);
+_launcher.Start("regedit.exe");
+```
+
+## File: .editorconfig
+```
+root = true
+
+[*.{cs,csproj}]
+indent_style = space
+indent_size = 4
+charset = utf-8-bom
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Preferência por 'var'
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+
+# Evita this. em membros
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_event = false:suggestion
+
+# Usa expression-bodied members quando possível
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_constructors = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = when_on_single_line:suggestion
+csharp_style_expression_bodied_indexers = when_on_single_line:suggestion
+csharp_style_expression_bodied_operators = when_on_single_line:suggestion
+csharp_style_expression_bodied_accessors = when_on_single_line:suggestion
+
+# Usa 'readonly' sempre que possível
+dotnet_style_readonly_field = true:suggestion
+
+# Organização de using
+dotnet_remove_unnecessary_usings = true:silent
+dotnet_sort_system_directives_first = true
+
+# Regras de formatação adicionais
+csharp_new_line_before_open_brace = all
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+
+[*.md]
+trim_trailing_whitespace = false
+end_of_line = lf
+
+[*.{json,xml,config,yml,yaml}]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+```
+
+## File: tests/WinServicesTool.Tests/ServiceOperationOrchestratorAdditionalTests.cs
+```csharp
+public sealed class ServiceOperationOrchestratorAdditionalTests
+⋮----
+public async Task RestartServices_AllOk_ReturnsAllTrue()
+⋮----
+svcManager.StopServiceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+svcManager.StartServiceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+var orchestrator = new ServiceOperationOrchestrator(svcManager, NullLogger<ServiceOperationOrchestrator>.Instance);
+⋮----
+var results = await orchestrator.RestartServicesAsync(services);
+results.Count.ShouldBe(2);
+results.Values.ShouldAllBe(v => v);
+⋮----
+public async Task StartServices_AllOk_ReturnsAllTrue()
+⋮----
+var results = await orchestrator.StartServicesAsync(services);
+```
+
+## File: tests/WinServicesTool.Tests/ServiceOperationOrchestratorTests.cs
+```csharp
+public sealed class ServiceOperationOrchestratorTests
+⋮----
+public async Task StartServices_WhenSomeFail_ReturnsCorrectMap()
+⋮----
+// Arrange
+⋮----
+svcManager.StartServiceAsync("ok").Returns(Task.CompletedTask);
+svcManager.When(x => x.StartServiceAsync("bad")).Do(_ => throw new Exception("fail"));
+var orchestrator = new ServiceOperationOrchestrator(svcManager, NullLogger<ServiceOperationOrchestrator>.Instance);
+⋮----
+// Act
+var results = await orchestrator.StartServicesAsync(services);
+// Assert
+results.Count.ShouldBe(2);
+results["ok"].ShouldBeTrue();
+results["bad"].ShouldBeFalse();
+```
 
 ## File: WinServicesTool/Models/ServiceTypeEx.cs
-````csharp
+```csharp
 public static class ServiceTypeHelper
 ⋮----
 public static string Describe(int rawType)
@@ -434,10 +480,10 @@ if (type.HasFlag(flag))
 parts.Add(flag.ToString());
 ⋮----
 ? string.Join(" + ", parts)
-````
+```
 
 ## File: WinServicesTool/Services/IPrivilegeService.cs
-````csharp
+```csharp
 /// <summary>
 /// Abstraction for privilege and elevation related operations.
 /// </summary>
@@ -451,37 +497,50 @@ bool IsAdministrator();
 /// Returns true if the relaunch was initiated.
 ⋮----
 void AskAndRestartAsAdmin(Form? owner, bool shouldAsk);
-````
+```
 
-## File: WinServicesTool/Services/PrivilegeService.cs
-````csharp
-public sealed class PrivilegeService : IPrivilegeService
+## File: WinServicesTool/Services/IServiceOperationOrchestrator.cs
+```csharp
+/// <summary>
+/// Orchestrates higher-level operations across multiple services (start/stop/restart).
+/// </summary>
+public interface IServiceOperationOrchestrator
 ⋮----
-public bool IsAdministrator()
+/// Starts the provided services and returns a map of serviceName->success.
 ⋮----
-using var identity = WindowsIdentity.GetCurrent();
-var principal = new WindowsPrincipal(identity);
-return principal.IsInRole(WindowsBuiltInRole.Administrator);
+Task<Dictionary<string, bool>> StartServicesAsync(IEnumerable<Service> services, CancellationToken cancellationToken = default);
 ⋮----
-_logger.LogWarning(ex, "Failed to determine administrator status");
+/// Stops the provided services and returns a map of serviceName->success.
 ⋮----
-public void AskAndRestartAsAdmin(Form? owner, bool alwaysStartAsAdm)
+Task<Dictionary<string, bool>> StopServicesAsync(IEnumerable<Service> services, CancellationToken cancellationToken = default);
 ⋮----
-var resp = MessageBox.Show
+/// Restarts the provided services (stop then start) and returns a map of serviceName->success.
 ⋮----
-var psi = new ProcessStartInfo
+Task<Dictionary<string, bool>> RestartServicesAsync(IEnumerable<Service> services, CancellationToken cancellationToken = default);
+```
+
+## File: WinServicesTool/Services/IWindowsServiceManager.cs
+```csharp
+/// <summary>
+/// Abstraction for operations that enumerate and manipulate Windows services.
+/// </summary>
+public interface IWindowsServiceManager
 ⋮----
-FileName = Process.GetCurrentProcess().MainModule?.FileName ?? Application.ExecutablePath,
+/// Enumerates known services and returns a list of lightweight <see cref="Models.Service"/> models.
 ⋮----
-Process.Start(psi);
-Application.Exit();
+Task<List<Models.Service>> GetServicesAsync();
 ⋮----
-_logger.LogError(ex, "Failed to relaunch elevated");
-MessageBox.Show(owner, "Unable to start the application with elevated privileges.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-````
+/// Starts the specified service by service name and waits until the service is running or timeout.
+⋮----
+Task StartServiceAsync(string serviceName, CancellationToken cancellationToken = default);
+⋮----
+/// Stops the specified service and waits until stopped or timeout.
+⋮----
+Task StopServiceAsync(string serviceName, CancellationToken cancellationToken = default);
+```
 
 ## File: WinServicesTool/Services/ServiceNativeHelper.cs
-````csharp
+```csharp
 /// <summary>
 /// Helper class to query Windows service executable paths using native API.
 /// Implements IDisposable to allow reusing the SCManager connection across multiple queries.
@@ -520,13 +579,12 @@ throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(), "Ope
 public string? GetExecutablePath(string serviceName)
 ⋮----
 ObjectDisposedException.ThrowIf(_disposed, this);
-IntPtr service = IntPtr.Zero;
 ⋮----
 throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(), $"OpenService failed for {serviceName}");
 ⋮----
 if (Marshal.GetLastWin32Error() != ERROR_INSUFFICIENT_BUFFER)
 ⋮----
-IntPtr buffer = Marshal.AllocHGlobal((int)bytesNeeded);
+var buffer = Marshal.AllocHGlobal((int)bytesNeeded);
 ⋮----
 throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(), $"QueryServiceConfig failed for {serviceName}");
 ⋮----
@@ -538,63 +596,36 @@ Marshal.FreeHGlobal(buffer);
 /// Releases the SCManager handle.
 ⋮----
 public void Dispose()
-````
+```
 
-## File: WinServicesTool/Utils/AppConfig.cs
-````csharp
-public sealed partial class AppConfig : INotifyPropertyChanged
+## File: tests/WinServicesTool.Tests/AppConfigTests.cs
+```csharp
+public sealed class AppConfigTests
 ⋮----
-/// <summary>
-/// Gets or sets a value indicating whether the main grid should automatically adjust column widths.
-/// </summary>
+public void Save_WhenCalled_PersistedAndLoadedValuesMatch()
 ⋮----
-/// Gets or sets a value indicating whether the Path column should be shown in the services grid.
+// Arrange
+var tmpDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+Directory.CreateDirectory(tmpDir);
 ⋮----
-/// Gets or sets a value indicating whether the application should always start with administrator privileges.
+var cfg = new AppConfig { VisibleColumns = ["Path"], AlwaysStartsAsAdministrator = true };
+// Act
+cfg.Save();
+// Assert
+var loaded = AppConfig.Load();
+loaded.VisibleColumns.ShouldBe(["Path"]);
+loaded.AlwaysStartsAsAdministrator.ShouldBe(true);
 ⋮----
-private static readonly string _filePath = Path.Combine(_appFolder, "app_config.json");
-public static AppConfig Load()
+var f = Path.Combine(tmpDir, "app_config.json");
+if (File.Exists(f)) File.Delete(f);
 ⋮----
-if (!File.Exists(_filePath))
-return new AppConfig();
-var json = File.ReadAllText(_filePath);
+Directory.Delete(tmpDir);
 ⋮----
-return cfg ?? new AppConfig();
-⋮----
-public void Save()
-⋮----
-Directory.CreateDirectory(_appFolder);
-var options = new JsonSerializerOptions { WriteIndented = true };
-File.WriteAllText(_filePath, JsonSerializer.Serialize(this, options));
-⋮----
-// non-critical
-````
-
-## File: WinServicesTool/Forms/FormChangeStartMode.cs
-````csharp
-public sealed class FormChangeStartMode : Form
-⋮----
-private void InitializeComponent(string initialMode)
-⋮----
-ClientSize = new Size(320, 120);
-var lbl = new Label { Left = 12, Top = 12, Width = 296, Text = "Select new start type:" };
-_cmb = new ComboBox { Left = 12, Top = 36, Width = 296, DropDownStyle = ComboBoxStyle.DropDownList };
-_cmb.Items.AddRange(["Automatic", "Manual", "Disabled"]);
-// Try to select the initial mode if present
-var idx = _cmb.Items.IndexOf(initialMode);
-⋮----
-_cmb.SelectedIndex = 1; // default Manual
-var btnOk = new Button { Text = "OK", Left = 148, Width = 80, Top = 76, DialogResult = DialogResult.OK };
-var btnCancel = new Button { Text = "Cancel", Left = 236, Width = 80, Top = 76, DialogResult = DialogResult.Cancel };
-⋮----
-Controls.Add(lbl);
-Controls.Add(_cmb);
-Controls.Add(btnOk);
-Controls.Add(btnCancel);
-````
+// ignored
+```
 
 ## File: WinServicesTool/Models/Service.cs
-````csharp
+```csharp
 /// <summary>
 /// Represents metadata and runtime state for a Windows service.
 /// </summary>
@@ -646,87 +677,77 @@ public sealed partial class Service : INotifyPropertyChanged
 /// Gets or sets a value indicating whether the service can be stopped.
 ⋮----
 /// <value><c>true</c> if the service supports stop requests; otherwise, <c>false</c>.</value>
-````
+```
 
-## File: WinServicesTool/Services/WindowsServiceManager.cs
-````csharp
-/// <summary>
-/// Default implementation of <see cref="IWindowsServiceManager"/> using <see cref="ServiceController"/>.
-/// </summary>
-public sealed class WindowsServiceManager : IWindowsServiceManager
+## File: WinServicesTool/Services/PrivilegeService.cs
+```csharp
+public sealed class PrivilegeService(ILogger<PrivilegeService> logger) : IPrivilegeService
 ⋮----
-private readonly AppConfig _appConfig;
+public bool IsAdministrator()
 ⋮----
-public Task<List<Service>> GetServicesAsync()
+using var identity = WindowsIdentity.GetCurrent();
+var principal = new WindowsPrincipal(identity);
+return principal.IsInRole(WindowsBuiltInRole.Administrator);
 ⋮----
-return Task.Run(() =>
+_logger.LogWarning(ex, "Failed to determine administrator status");
 ⋮----
-var services = ServiceController.GetServices();
+public void AskAndRestartAsAdmin(Form? owner, bool alwaysStartAsAdm)
 ⋮----
-.Select(serv => new Service
+var resp = MessageBox.Show
 ⋮----
-ServiceType = ServiceTypeHelper.Describe((int)serv.ServiceType),
+var psi = new ProcessStartInfo
 ⋮----
-.OrderBy(s => s.DisplayName)];
+FileName = Process.GetCurrentProcess().MainModule?.FileName ?? Application.ExecutablePath,
 ⋮----
-using var pathHelper = new ServicePathHelper();
+Process.Start(psi);
+Application.Exit();
 ⋮----
-Path = pathHelper.GetExecutablePath(serv.ServiceName) ?? string.Empty,
-⋮----
-.OrderBy(s => s.DisplayName)
-.ToList();
-⋮----
-_logger.LogError(ex, "Failed to enumerate services");
-⋮----
-public Task StartServiceAsync(string serviceName)
-⋮----
-using var sc = new ServiceController(serviceName);
-⋮----
-sc.Start();
-sc.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(10));
-⋮----
-public Task StopServiceAsync(string serviceName)
-⋮----
-sc.Stop();
-sc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(10));
-⋮----
-private static ServiceStartMode GetStartTypeSafe(ServiceController serv)
-````
+_logger.LogError(ex, "Failed to relaunch elevated");
+MessageBox.Show(owner, "Unable to start the application with elevated privileges.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+```
 
-## File: WinServicesTool/Utils/ColumnWidthStore.cs
-````csharp
-internal static class ColumnWidthStore
-⋮----
-private static readonly string _filePath = Path.Combine(_appFolder, "column_widths.json");
+## File: WinServicesTool/Services/ServiceOperationOrchestrator.cs
+```csharp
 /// <summary>
-/// Saves the given column widths to a JSON file in the application data folder.
+/// Default implementation of <see cref="IServiceOperationOrchestrator"/>.
 /// </summary>
-/// <param name="widths">
-/// A dictionary mapping column identifiers to their widths in pixels.
-/// </param>
-public static void Save(IDictionary<string, int> widths)
+public sealed class ServiceOperationOrchestrator(IWindowsServiceManager svcManager, ILogger<ServiceOperationOrchestrator> logger) : IServiceOperationOrchestrator
 ⋮----
-Directory.CreateDirectory(_appFolder);
-var options = new JsonSerializerOptions { WriteIndented = true };
-File.WriteAllText(_filePath, JsonSerializer.Serialize(widths, options));
+private readonly IWindowsServiceManager _svcManager = svcManager;
 ⋮----
-// Swallow exceptions — non-critical
+public async Task<Dictionary<string, bool>> StartServicesAsync(IEnumerable<Service> services, CancellationToken cancellationToken = default)
 ⋮----
-/// Loads a dictionary of string keys and integer values from the configured file path, if the file exists and can
-/// be deserialized.
+cancellationToken.ThrowIfCancellationRequested();
 ⋮----
-/// <remarks>Returns <see langword="null"/> if the file does not exist, cannot be read, or contains
-/// invalid data. The returned dictionary may be empty if the file contains no entries.</remarks>
-/// <returns>A <see cref="Dictionary{string, int}"/> containing the deserialized data if the file exists and is valid;
-/// otherwise, <see langword="null"/>.</returns>
-public static Dictionary<string, int>? Load()
+await _svcManager.StartServiceAsync(s.ServiceName, cancellationToken);
 ⋮----
-if (!File.Exists(_filePath)) return null;
-var json = File.ReadAllText(_filePath);
-````
+_logger.LogInformation("Started service {ServiceName}", s.ServiceName);
+⋮----
+_logger.LogInformation("Start cancelled for {ServiceName}", s.ServiceName);
+⋮----
+_logger.LogError(ex, "Failed to start service {ServiceName}", s.ServiceName);
+⋮----
+public async Task<Dictionary<string, bool>> StopServicesAsync(IEnumerable<Service> services, CancellationToken cancellationToken = default)
+⋮----
+await _svcManager.StopServiceAsync(s.ServiceName, cancellationToken);
+⋮----
+_logger.LogInformation("Stopped service {ServiceName}", s.ServiceName);
+⋮----
+_logger.LogInformation("Stop cancelled for {ServiceName}", s.ServiceName);
+⋮----
+_logger.LogError(ex, "Failed to stop service {ServiceName}", s.ServiceName);
+⋮----
+public async Task<Dictionary<string, bool>> RestartServicesAsync(IEnumerable<Service> services, CancellationToken cancellationToken = default)
+⋮----
+_logger.LogInformation("Restarted service {ServiceName}", s.ServiceName);
+⋮----
+_logger.LogInformation("Restart cancelled for {ServiceName}", s.ServiceName);
+⋮----
+_logger.LogError(ex, "Failed to restart service {ServiceName}", s.ServiceName);
+```
 
 ## File: WinServicesTool/WinServicesTool.csproj
-````
+```
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -736,7 +757,6 @@ var json = File.ReadAllText(_filePath);
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>app.ico</ApplicationIcon>
-    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
 
@@ -772,11 +792,170 @@ var json = File.ReadAllText(_filePath);
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.9" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>
-````
+```
+
+## File: WinServicesTool/Forms/FormChangeStartMode.cs
+```csharp
+public sealed class FormChangeStartMode : Form
+⋮----
+private void InitializeComponent(string initialMode)
+⋮----
+ClientSize = new Size(320, 120);
+var lbl = new Label
+⋮----
+_cmb = new ComboBox
+⋮----
+_cmb.Items.AddRange(["Automatic", "Manual", "Disabled"]);
+// Try to select the initial mode if present
+var idx = _cmb.Items.IndexOf(initialMode);
+⋮----
+: 1; // default Manual
+var btnOk = new Button
+⋮----
+var btnCancel = new Button
+⋮----
+Controls.Add(lbl);
+Controls.Add(_cmb);
+Controls.Add(btnOk);
+Controls.Add(btnCancel);
+```
+
+## File: WinServicesTool/Utils/AppConfig.cs
+```csharp
+public sealed partial class AppConfig : INotifyPropertyChanged
+⋮----
+/// <summary>
+/// Gets or sets the list of visible column names in the services grid.
+/// </summary>
+⋮----
+/// Gets a value indicating whether the Path column is currently visible in the view.
+⋮----
+=> VisibleColumns.Count is 0 || VisibleColumns.Contains("ColPath");
+⋮----
+/// Gets or sets a value indicating whether the application should always start with administrator privileges.
+⋮----
+/// Saved left position of the main window.
+⋮----
+/// Saved top position of the main window.
+⋮----
+/// Saved width of the main window.
+⋮----
+/// Saved height of the main window.
+⋮----
+/// Saved window state (Normal, Minimized, Maximized).
+⋮----
+/// Saved SplitContainer.SplitterDistance for the main split (log/grid).
+⋮----
+// Use the application's base directory (where the executable lives) so load/save
+// happen from the same location regardless of current working directory.
+⋮----
+private static readonly string _filePath = Path.Combine(_appFolder, "app_config.json");
+public static AppConfig Load()
+⋮----
+if (!File.Exists(_filePath))
+return new AppConfig();
+var json = File.ReadAllText(_filePath);
+⋮----
+return cfg ?? new AppConfig();
+⋮----
+public void Save()
+⋮----
+Directory.CreateDirectory(_appFolder);
+var options = new JsonSerializerOptions { WriteIndented = true };
+File.WriteAllText(_filePath, JsonSerializer.Serialize(this, options));
+⋮----
+// non-critical
+```
+
+## File: WinServicesTool/Program.cs
+```csharp
+var services = new ServiceCollection();
+⋮----
+services.AddSingleton<AppConfig>(_ => AppConfig.Load());
+// Add NLog
+services.AddLogging(builder =>
+⋮----
+builder.SetMinimumLevel(LogLevel.Trace);
+builder.AddNLog("nlog.config");
+⋮----
+var serviceProvider = services.BuildServiceProvider();
+⋮----
+logger.LogInformation("Application Starting...");
+logger.LogInformation
+⋮----
+ApplicationConfiguration.Initialize();
+⋮----
+Application.Run(mainForm);
+⋮----
+logger.LogError(ex, "Exception not handled");
+```
+
+## File: WinServicesTool/Services/WindowsServiceManager.cs
+```csharp
+/// <summary>
+/// Default implementation of <see cref="IWindowsServiceManager"/> using <see cref="ServiceController"/>.
+/// </summary>
+public sealed class WindowsServiceManager(ILogger<WindowsServiceManager> logger, AppConfig appConfig) : IWindowsServiceManager
+⋮----
+public Task<List<Service>> GetServicesAsync()
+=> Task.Run(() =>
+⋮----
+var services = ServiceController.GetServices();
+// Check if Path column is visible in config
+⋮----
+.Select(serv => new Service
+⋮----
+ServiceType = ServiceTypeHelper.Describe((int)serv.ServiceType),
+⋮----
+.OrderBy(s => s.DisplayName)];
+⋮----
+using var pathHelper = new ServicePathHelper();
+⋮----
+Path = pathHelper.GetExecutablePath(serv.ServiceName) ?? string.Empty,
+⋮----
+.OrderBy(s => s.DisplayName)
+.ToList();
+⋮----
+logger.LogError(ex, "Failed to enumerate services");
+⋮----
+public Task StartServiceAsync(string serviceName, CancellationToken cancellationToken = default)
+⋮----
+cancellationToken.ThrowIfCancellationRequested();
+using var sc = new ServiceController(serviceName);
+⋮----
+sc.Start();
+// Wait loop with cancellation checks
+var timeout = TimeSpan.FromSeconds(10);
+var sw = System.Diagnostics.Stopwatch.StartNew();
+⋮----
+Thread.Sleep(200);
+sc.Refresh();
+⋮----
+public Task StopServiceAsync(string serviceName, CancellationToken cancellationToken = default)
+⋮----
+sc.Stop();
+⋮----
+private static ServiceStartMode GetStartTypeSafe(ServiceController serv)
+```
 
 ## File: WinServicesTool/Forms/FormMain.Designer.cs
-````csharp
+```csharp
 sealed partial class FormMain
 ⋮----
 /// <summary>
@@ -797,16 +976,16 @@ base.Dispose(disposing);
 ⋮----
 private void InitializeComponent()
 ⋮----
-TabCtrl = new TabControl();
-TabMain = new TabPage();
 tableLayoutPanel2 = new TableLayoutPanel();
 tableLayoutPanel3 = new TableLayoutPanel();
+ChkStartAsAdm = new CheckBox();
 BtnLoad = new Button();
 Imgs = new ImageList(components);
 BtnStart = new Button();
 BtnStop = new Button();
 BtnRestart = new Button();
 BtnChangeStartMode = new Button();
+BtnCancel = new Button();
 tableLayoutPanelFilter = new TableLayoutPanel();
 CbFilterStatus = new ComboBox();
 CbFilterStartMode = new ComboBox();
@@ -814,16 +993,6 @@ TxtFilter = new TextBox();
 LblFilterStatus = new Label();
 LblStartMode = new Label();
 GridServs = new DataGridView();
-serviceBindingSource = new BindingSource(components);
-TabSettings = new TabPage();
-PnlSettings = new TableLayoutPanel();
-GrpStarting = new GroupBox();
-ChkStartAsAdm = new CheckBox();
-GrpSettingsGrid = new GroupBox();
-ChkAutoWidth = new CheckBox();
-ChkShowPath = new CheckBox();
-TextLog = new RichTextBox();
-SplitMain = new SplitContainer();
 ColDisplayName = new DataGridViewTextBoxColumn();
 ColServiceName = new DataGridViewTextBoxColumn();
 ColStatus = new DataGridViewTextBoxColumn();
@@ -833,40 +1002,25 @@ ColCanPauseAndContinue = new DataGridViewCheckBoxColumn();
 ColCanShutdown = new DataGridViewCheckBoxColumn();
 ColCanStop = new DataGridViewCheckBoxColumn();
 ColPath = new DataGridViewTextBoxColumn();
-TabCtrl.SuspendLayout();
-TabMain.SuspendLayout();
+serviceBindingSource = new BindingSource(components);
+TextLog = new RichTextBox();
+SplitMain = new SplitContainer();
+StatusBar = new StatusStrip();
+LblStatusServices = new ToolStripStatusLabel();
+LblStatusSeparator = new ToolStripStatusLabel();
+LblStatusServicesRunning = new ToolStripStatusLabel();
 tableLayoutPanel2.SuspendLayout();
 tableLayoutPanel3.SuspendLayout();
 tableLayoutPanelFilter.SuspendLayout();
 ((System.ComponentModel.ISupportInitialize)GridServs).BeginInit();
 ((System.ComponentModel.ISupportInitialize)serviceBindingSource).BeginInit();
-TabSettings.SuspendLayout();
-PnlSettings.SuspendLayout();
-GrpStarting.SuspendLayout();
-GrpSettingsGrid.SuspendLayout();
 ((System.ComponentModel.ISupportInitialize)SplitMain).BeginInit();
 SplitMain.Panel1.SuspendLayout();
 SplitMain.Panel2.SuspendLayout();
 SplitMain.SuspendLayout();
+StatusBar.SuspendLayout();
 ⋮----
 //
-// TabCtrl
-⋮----
-TabCtrl.Controls.Add(TabMain);
-TabCtrl.Controls.Add(TabSettings);
-⋮----
-TabCtrl.Location = new Point(0, 0);
-⋮----
-TabCtrl.Size = new Size(1088, 561);
-⋮----
-// TabMain
-⋮----
-TabMain.Controls.Add(tableLayoutPanel2);
-TabMain.Location = new Point(4, 24);
-⋮----
-TabMain.Padding = new Padding(3);
-TabMain.Size = new Size(1080, 533);
-⋮----
 // tableLayoutPanel2
 ⋮----
 tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
@@ -874,28 +1028,37 @@ tableLayoutPanel2.Controls.Add(tableLayoutPanel3, 0, 0);
 tableLayoutPanel2.Controls.Add(tableLayoutPanelFilter, 0, 1);
 tableLayoutPanel2.Controls.Add(GridServs, 0, 2);
 ⋮----
-tableLayoutPanel2.Location = new Point(3, 3);
+tableLayoutPanel2.Location = new Point(0, 0);
 ⋮----
 tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
 tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
 tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-tableLayoutPanel2.Size = new Size(1074, 527);
+tableLayoutPanel2.Size = new Size(1252, 561);
 ⋮----
 // tableLayoutPanel3
 ⋮----
 tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
 ⋮----
 tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
+tableLayoutPanel3.Controls.Add(ChkStartAsAdm, 7, 0);
 tableLayoutPanel3.Controls.Add(BtnLoad, 0, 0);
 tableLayoutPanel3.Controls.Add(BtnStart, 1, 0);
 tableLayoutPanel3.Controls.Add(BtnStop, 2, 0);
 tableLayoutPanel3.Controls.Add(BtnRestart, 3, 0);
 tableLayoutPanel3.Controls.Add(BtnChangeStartMode, 4, 0);
+tableLayoutPanel3.Controls.Add(BtnCancel, 5, 0);
 ⋮----
 tableLayoutPanel3.Location = new Point(3, 3);
 ⋮----
 tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-tableLayoutPanel3.Size = new Size(1068, 44);
+tableLayoutPanel3.Size = new Size(1246, 44);
+⋮----
+// ChkStartAsAdm
+⋮----
+ChkStartAsAdm.Location = new Point(1129, 3);
+⋮----
+ChkStartAsAdm.Size = new Size(114, 38);
 ⋮----
 // BtnLoad
 ⋮----
@@ -913,6 +1076,7 @@ Imgs.Images.SetKeyName(2, "play.png");
 Imgs.Images.SetKeyName(3, "square.png");
 Imgs.Images.SetKeyName(4, "rotate-ccw.png");
 Imgs.Images.SetKeyName(5, "trending-up.png");
+Imgs.Images.SetKeyName(6, "ban.png");
 ⋮----
 // BtnStart
 ⋮----
@@ -938,10 +1102,19 @@ BtnChangeStartMode.Location = new Point(403, 3);
 ⋮----
 BtnChangeStartMode.Size = new Size(94, 38);
 ⋮----
+// BtnCancel
+⋮----
+BtnCancel.Font = new Font("Segoe UI", 9F);
+⋮----
+BtnCancel.Location = new Point(503, 3);
+⋮----
+BtnCancel.Size = new Size(94, 38);
+⋮----
 // tableLayoutPanelFilter
 ⋮----
-tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 50F));
+tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70F));
 tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
+tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 50F));
 ⋮----
 tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 tableLayoutPanelFilter.Controls.Add(CbFilterStatus, 1, 0);
@@ -953,18 +1126,18 @@ tableLayoutPanelFilter.Controls.Add(LblStartMode, 2, 0);
 tableLayoutPanelFilter.Location = new Point(3, 53);
 ⋮----
 tableLayoutPanelFilter.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-tableLayoutPanelFilter.Size = new Size(1068, 34);
+tableLayoutPanelFilter.Size = new Size(1246, 34);
 ⋮----
 // CbFilterStatus
 ⋮----
-CbFilterStatus.Location = new Point(53, 5);
+CbFilterStatus.Location = new Point(73, 5);
 CbFilterStatus.Margin = new Padding(3, 5, 3, 3);
 ⋮----
 CbFilterStatus.Size = new Size(194, 23);
 ⋮----
 // CbFilterStartMode
 ⋮----
-CbFilterStartMode.Location = new Point(303, 5);
+CbFilterStartMode.Location = new Point(323, 5);
 CbFilterStartMode.Margin = new Padding(3, 5, 3, 3);
 ⋮----
 CbFilterStartMode.Size = new Size(194, 23);
@@ -972,21 +1145,23 @@ CbFilterStartMode.Size = new Size(194, 23);
 // TxtFilter
 ⋮----
 TxtFilter.Font = new Font("Segoe UI", 10F);
-TxtFilter.Location = new Point(505, 5);
+TxtFilter.Location = new Point(525, 5);
 TxtFilter.Margin = new Padding(5, 5, 5, 3);
 ⋮----
-TxtFilter.Size = new Size(558, 25);
+TxtFilter.Size = new Size(716, 25);
 ⋮----
 // LblFilterStatus
+⋮----
+LblFilterStatus.Image = (Image)resources.GetObject("LblFilterStatus.Image");
 ⋮----
 LblFilterStatus.Location = new Point(0, 0);
 LblFilterStatus.Margin = new Padding(0);
 ⋮----
-LblFilterStatus.Size = new Size(50, 34);
+LblFilterStatus.Size = new Size(70, 34);
 ⋮----
 // LblStartMode
 ⋮----
-LblStartMode.Location = new Point(253, 0);
+LblStartMode.Location = new Point(273, 0);
 ⋮----
 LblStartMode.Size = new Size(38, 30);
 ⋮----
@@ -996,89 +1171,7 @@ GridServs.Columns.AddRange(new DataGridViewColumn[] { ColDisplayName, ColService
 ⋮----
 GridServs.Location = new Point(3, 93);
 ⋮----
-GridServs.Size = new Size(1068, 431);
-⋮----
-// serviceBindingSource
-⋮----
-// TabSettings
-⋮----
-TabSettings.Controls.Add(PnlSettings);
-TabSettings.Location = new Point(4, 24);
-⋮----
-TabSettings.Padding = new Padding(3);
-TabSettings.Size = new Size(1080, 533);
-⋮----
-// PnlSettings
-⋮----
-PnlSettings.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
-⋮----
-PnlSettings.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-PnlSettings.Controls.Add(GrpStarting, 1, 0);
-PnlSettings.Controls.Add(GrpSettingsGrid, 0, 0);
-⋮----
-PnlSettings.Location = new Point(3, 3);
-⋮----
-PnlSettings.RowStyles.Add(new RowStyle(SizeType.Absolute, 182F));
-PnlSettings.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-PnlSettings.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
-PnlSettings.Size = new Size(1074, 527);
-⋮----
-// GrpStarting
-⋮----
-GrpStarting.Controls.Add(ChkStartAsAdm);
-⋮----
-GrpStarting.Location = new Point(203, 3);
-⋮----
-GrpStarting.Padding = new Padding(5);
-GrpStarting.Size = new Size(194, 176);
-⋮----
-// ChkStartAsAdm
-⋮----
-ChkStartAsAdm.Location = new Point(5, 21);
-⋮----
-ChkStartAsAdm.Size = new Size(184, 19);
-⋮----
-// GrpSettingsGrid
-⋮----
-GrpSettingsGrid.Controls.Add(ChkAutoWidth);
-GrpSettingsGrid.Controls.Add(ChkShowPath);
-⋮----
-GrpSettingsGrid.Location = new Point(3, 3);
-⋮----
-GrpSettingsGrid.Padding = new Padding(5);
-GrpSettingsGrid.Size = new Size(194, 176);
-⋮----
-// ChkAutoWidth
-⋮----
-ChkAutoWidth.Location = new Point(5, 21);
-⋮----
-ChkAutoWidth.Size = new Size(184, 19);
-⋮----
-// ChkShowPath
-⋮----
-ChkShowPath.Location = new Point(5, 40);
-⋮----
-ChkShowPath.Size = new Size(184, 19);
-⋮----
-// TextLog
-⋮----
-TextLog.Location = new Point(0, 0);
-TextLog.Margin = new Padding(10);
-⋮----
-TextLog.Size = new Size(1088, 126);
-⋮----
-// SplitMain
-⋮----
-SplitMain.Location = new Point(0, 0);
-⋮----
-// SplitMain.Panel1
-⋮----
-SplitMain.Panel1.Controls.Add(TabCtrl);
-⋮----
-// SplitMain.Panel2
-⋮----
-SplitMain.Panel2.Controls.Add(TextLog);
-SplitMain.Size = new Size(1088, 691);
+GridServs.Size = new Size(1246, 465);
 ⋮----
 // ColDisplayName
 ⋮----
@@ -1096,38 +1189,79 @@ SplitMain.Size = new Size(1088, 691);
 ⋮----
 // ColCanStop
 ⋮----
-// Path
+// ColPath
+⋮----
+// serviceBindingSource
+⋮----
+// TextLog
+⋮----
+TextLog.Location = new Point(0, 0);
+TextLog.Margin = new Padding(10);
+⋮----
+TextLog.Size = new Size(1252, 104);
+⋮----
+// SplitMain
+⋮----
+SplitMain.Location = new Point(0, 0);
+⋮----
+// SplitMain.Panel1
+⋮----
+SplitMain.Panel1.Controls.Add(tableLayoutPanel2);
+⋮----
+// SplitMain.Panel2
+⋮----
+SplitMain.Panel2.Controls.Add(TextLog);
+SplitMain.Panel2.Controls.Add(StatusBar);
+SplitMain.Size = new Size(1252, 691);
+⋮----
+// StatusBar
+⋮----
+StatusBar.Items.AddRange(new ToolStripItem[] { LblStatusServices, LblStatusSeparator, LblStatusServicesRunning });
+StatusBar.Location = new Point(0, 104);
+⋮----
+StatusBar.Size = new Size(1252, 22);
+⋮----
+// LblStatusServices
+⋮----
+LblStatusServices.Image = (Image)resources.GetObject("LblStatusServices.Image");
+⋮----
+LblStatusServices.Size = new Size(120, 17);
+⋮----
+// LblStatusSeparator
+⋮----
+LblStatusSeparator.Image = (Image)resources.GetObject("LblStatusSeparator.Image");
+⋮----
+LblStatusSeparator.Size = new Size(16, 17);
+⋮----
+// LblStatusServicesRunning
+⋮----
+LblStatusServicesRunning.Image = (Image)resources.GetObject("LblStatusServicesRunning.Image");
+⋮----
+LblStatusServicesRunning.Size = new Size(126, 17);
 ⋮----
 // FormMain
 ⋮----
 AutoScaleDimensions = new SizeF(7F, 15F);
 ⋮----
-ClientSize = new Size(1088, 691);
+ClientSize = new Size(1252, 691);
 Controls.Add(SplitMain);
 Icon = (Icon)resources.GetObject("$this.Icon");
 ⋮----
-TabCtrl.ResumeLayout(false);
-TabMain.ResumeLayout(false);
 tableLayoutPanel2.ResumeLayout(false);
 tableLayoutPanel3.ResumeLayout(false);
+tableLayoutPanel3.PerformLayout();
 tableLayoutPanelFilter.ResumeLayout(false);
 tableLayoutPanelFilter.PerformLayout();
 ((System.ComponentModel.ISupportInitialize)GridServs).EndInit();
 ((System.ComponentModel.ISupportInitialize)serviceBindingSource).EndInit();
-TabSettings.ResumeLayout(false);
-PnlSettings.ResumeLayout(false);
-GrpStarting.ResumeLayout(false);
-GrpStarting.PerformLayout();
-GrpSettingsGrid.ResumeLayout(false);
-GrpSettingsGrid.PerformLayout();
 SplitMain.Panel1.ResumeLayout(false);
 SplitMain.Panel2.ResumeLayout(false);
+SplitMain.Panel2.PerformLayout();
 ((System.ComponentModel.ISupportInitialize)SplitMain).EndInit();
 SplitMain.ResumeLayout(false);
+StatusBar.ResumeLayout(false);
+StatusBar.PerformLayout();
 ⋮----
-private TabControl TabCtrl;
-private TabPage TabMain;
-private TabPage TabSettings;
 private TableLayoutPanel tableLayoutPanel2;
 private DataGridView GridServs;
 private BindingSource serviceBindingSource;
@@ -1146,12 +1280,6 @@ private RichTextBox TextLog;
 private SplitContainer SplitMain;
 private Label LblFilterStatus;
 private Label LblStartMode;
-private TableLayoutPanel PnlSettings;
-private GroupBox GrpSettingsGrid;
-private CheckBox ChkAutoWidth;
-private CheckBox ChkShowPath;
-private GroupBox GrpStarting;
-private CheckBox ChkStartAsAdm;
 private DataGridViewTextBoxColumn ColDisplayName;
 private DataGridViewTextBoxColumn ColServiceName;
 private DataGridViewTextBoxColumn ColStatus;
@@ -1161,33 +1289,16 @@ private DataGridViewCheckBoxColumn ColCanPauseAndContinue;
 private DataGridViewCheckBoxColumn ColCanShutdown;
 private DataGridViewCheckBoxColumn ColCanStop;
 private DataGridViewTextBoxColumn ColPath;
-````
-
-## File: WinServicesTool/Program.cs
-````csharp
-var services = new ServiceCollection();
-⋮----
-services.AddSingleton<AppConfig>(_ => AppConfig.Load());
-// Add NLog
-services.AddLogging(builder =>
-⋮----
-builder.SetMinimumLevel(LogLevel.Trace);
-builder.AddNLog("nlog.config");
-⋮----
-var serviceProvider = services.BuildServiceProvider();
-⋮----
-logger.LogInformation("Application Starting...");
-logger.LogInformation
-⋮----
-ApplicationConfiguration.Initialize();
-⋮----
-Application.Run(mainForm);
-⋮----
-logger.LogError(ex, "Exception not handled");
-````
+private Button BtnCancel;
+private CheckBox ChkStartAsAdm;
+private StatusStrip StatusBar;
+private ToolStripStatusLabel LblStatusServices;
+private ToolStripStatusLabel LblStatusServicesRunning;
+private ToolStripStatusLabel LblStatusSeparator;
+```
 
 ## File: WinServicesTool/Forms/FormMain.cs
-````csharp
+```csharp
 // ReSharper disable AsyncVoidEventHandlerMethod
 public sealed partial class FormMain : Form
 ⋮----
@@ -1199,9 +1310,18 @@ private SortOrder _sortOrder = SortOrder.None;
 ⋮----
 private readonly IWindowsServiceManager _serviceManager;
 private readonly IPrivilegeService _privilegeService;
+private readonly IServiceOperationOrchestrator _orchestrator;
+private readonly IRegistryService _registryService;
+private readonly IRegistryEditor _registryEditor;
+/// <summary>
+/// Delegate used to open Regedit for a given registry path. Tests can replace this delegate
+/// to avoid starting external processes.
+/// </summary>
 ⋮----
-ChkAutoWidth.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.AutoWidthColumns), false, DataSourceUpdateMode.OnPropertyChanged);
-ChkShowPath.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.ShowPathColumn), false, DataSourceUpdateMode.OnPropertyChanged);
+// Show the app name and version in the title bar
+⋮----
+// Ensure Cancel button starts disabled
+⋮----
 ChkStartAsAdm.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.AlwaysStartsAsAdministrator), false, DataSourceUpdateMode.OnPropertyChanged);
 // Make header selection color match header background so headers don't show as "selected" in blue
 ⋮----
@@ -1213,7 +1333,7 @@ if (_privilegeService.IsAdministrator())
 ⋮----
 _privilegeService.AskAndRestartAsAdmin(this, _appConfig.AlwaysStartsAsAdministrator);
 ⋮----
-private void AppConfigChanged(object? sender, PropertyChangedEventArgs e)
+private async void AppConfigChanged(object? sender, PropertyChangedEventArgs e)
 ⋮----
 _appConfig.Save();
 // Handle dynamic column visibility changes
@@ -1223,6 +1343,22 @@ private async void FormPrincipal_Load(object? sender, EventArgs e)
 ⋮----
 if (!_privilegeService.IsAdministrator())
 ⋮----
+// Apply column visibility from config
+⋮----
+private void FormPrincipal_Shown(object? sender, EventArgs e)
+⋮----
+// Restore window position/size/state from config
+⋮----
+Bounds = new Rectangle(_appConfig.WindowLeft, _appConfig.WindowTop, _appConfig.WindowWidth, _appConfig.WindowHeight);
+⋮----
+if (!string.IsNullOrEmpty(_appConfig.WindowState) && Enum.TryParse<FormWindowState>(_appConfig.WindowState, out var ws))
+⋮----
+// Restore splitter distance if available
+⋮----
+// ignore invalid splitter values
+⋮----
+// ignore restore failures
+⋮----
 private void UpdateFilterLists()
 ⋮----
 // Preserve previous selections
@@ -1230,17 +1366,13 @@ private void UpdateFilterLists()
 CbFilterStatus.Items.Clear();
 CbFilterStatus.Items.Add("All");
 foreach (var st in _allServices.Select(s => s.Status).Distinct().Order())
-⋮----
 CbFilterStatus.Items.Add(st.ToString());
-⋮----
 if (!string.IsNullOrEmpty(prevStatus) && CbFilterStatus.Items.Contains(prevStatus))
 ⋮----
 CbFilterStartMode.Items.Clear();
 CbFilterStartMode.Items.Add("All");
 foreach (var sm in _allServices.Select(static s => s.StartMode).Distinct().Order())
-⋮----
 CbFilterStartMode.Items.Add(sm.ToString());
-⋮----
 if (!string.IsNullOrEmpty(prevStart) && CbFilterStartMode.Items.Contains(prevStart))
 ⋮----
 _logger.LogError(ex, "Failed to update filter lists");
@@ -1252,6 +1384,12 @@ var sel = GetSelectedServices().ToList();
 var statuses = sel.Select(s => s.Status).Distinct().ToList();
 ⋮----
 _logger.LogError(ex, "Error evaluating selection state");
+⋮----
+private void BtnCancel_Click(object? sender, EventArgs e)
+⋮----
+_currentOperationCts.Cancel();
+⋮----
+_logger.LogError(ex, "Error while cancelling operation");
 ⋮----
 private void GridServs_MouseUp(object? sender, MouseEventArgs e)
 ⋮----
@@ -1300,19 +1438,74 @@ menu.Show(GridServs, new Point(e.X, e.Y));
 ⋮----
 _logger.LogError(ex, "Error showing context menu");
 ⋮----
-private void OpenServiceInRegistry(string serviceName)
+private void GridServs_ColumnHeaderMouseClick(object? sender, DataGridViewCellMouseEventArgs e)
+⋮----
+// Handle right-click for column visibility
+⋮----
+// Build context menu for column visibility
+⋮----
+var chooseColumnsItem = new ToolStripMenuItem("Choose Visible Columns...") { Enabled = true };
+⋮----
+menu.Items.Add(chooseColumnsItem);
+⋮----
+var screenPoint = GridServs.PointToScreen(new Point(e.X, e.Y));
+menu.Show(screenPoint);
+⋮----
+_logger.LogError(ex, "Error showing column header context menu");
+⋮----
+// Handle left-click for sorting
+⋮----
+var propName = !string.IsNullOrEmpty(col.DataPropertyName)
+⋮----
+// cycle: None -> Asc -> Desc -> None
+⋮----
+// clear property when cycling back to no-sort
+⋮----
+private async Task ShowColumnChooserDialogAsync()
+⋮----
+// Get currently visible columns
+⋮----
+using var dlg = new FormColumnChooser([.. GridServs.Columns.Cast<DataGridViewColumn>()], visibleColumns);
+if (await dlg.ShowDialogAsync(this) != DialogResult.OK)
+⋮----
+// Update config with selected columns
+⋮----
+// Apply visibility
+⋮----
+_logger.LogError(ex, "Error showing column chooser dialog");
+⋮----
+private async Task LoadServicePathsAsync()
+⋮----
+// Get services that don't have paths loaded yet
+var servicesToUpdate = _servicesList.Where(s => string.IsNullOrEmpty(s.Path)).ToList();
+⋮----
+// Run the path loading in a background thread to avoid UI freezing
+await Task.Run(() =>
+⋮----
+using var pathHelper = new ServicePathHelper();
+⋮----
+service.Path = pathHelper.GetExecutablePath(service.ServiceName) ?? string.Empty;
+⋮----
+_logger.LogError(ex, "Failed to get path for service {ServiceName}", service.ServiceName);
+⋮----
+// Notify the binding source that data changed
+this.InvokeIfRequired(() =>
+⋮----
+serviceBindingSource.ResetBindings(false);
+⋮----
+_logger.LogError(ex, "Error loading service paths");
+⋮----
+private async Task ApplyColumnVisibilityAsync()
+⋮----
+col.Visible = visibleColumns.Contains(col.Name);
+⋮----
+_logger.LogError(ex, "Error applying column visibility");
+⋮----
+internal void OpenServiceInRegistry(string serviceName)
 ⋮----
 // Registry path for the service
 ⋮----
-// Set the LastKey in the current user's registry so regedit opens at the correct location
-using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Applets\Regedit"))
-⋮----
-// Small delay to ensure registry is written
-Thread.Sleep(100);
-// Now open regedit - it should automatically navigate to the LastKey
-var regeditStart = new ProcessStartInfo
-⋮----
-var process = Process.Start(regeditStart);
+_registryService.SetRegeditLastKey(registryPath);
 ⋮----
 _logger.LogError(ex, "Failed to open registry for service {ServiceName}", serviceName);
 ⋮----
@@ -1349,8 +1542,6 @@ e.PaintBackground(e.CellBounds, true);
 e.PaintContent(e.CellBounds);
 if (string.IsNullOrEmpty(_sortPropertyName) || _sortOrder == SortOrder.None)
 ⋮----
-var propName = !string.IsNullOrEmpty(col.DataPropertyName)
-⋮----
 // Draw a small triangle on the right side of the header
 ⋮----
 var size = Math.Min(12, rect.Height - 8);
@@ -1366,44 +1557,13 @@ graphicsContext.FillPolygon(brush, pts);
 private async void BtnLoad_Click(object? sender, EventArgs e)
 ⋮----
 _allServices = await _serviceManager.GetServicesAsync();
-// Configure column sizing BEFORE populating data
-// This is critical for Fill mode to work correctly
-⋮----
-// Set all to None before loading saved widths
-⋮----
 // Update the filter dropdowns to show only values present in the loaded list
 ⋮----
 // Now populate the grid with data
 ⋮----
-// Load saved widths only if NOT in auto-width mode (after data is populated)
-⋮----
 MessageBox.Show(this, $"Failed to load services: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 ⋮----
 _logger.LogError(ex, "Failed to load services");
-⋮----
-private void ApplyColumnSizing()
-⋮----
-// Temporarily suspend layout to avoid flickering
-GridServs.SuspendLayout();
-⋮----
-// First, configure non-Fill columns to take minimal space
-⋮----
-.Where(c => c != ColDisplayName && c != ColPath))
-⋮----
-col.FillWeight = 50; // Minimal weight so they don't expand
-⋮----
-// Configure Fill columns to share remaining space
-⋮----
-// Path column should also fill when visible
-⋮----
-ColPath.FillWeight = 150; // More weight for Path (longer content)
-⋮----
-// When Path is hidden, ensure it doesn't interfere
-⋮----
-// Manual sizing mode - set all to None to respect saved widths
-⋮----
-GridServs.ResumeLayout();
-GridServs.Refresh();
 ⋮----
 private void TxtFilter_TextChanged(object? sender, EventArgs e)
 ⋮----
@@ -1435,11 +1595,10 @@ working = [.. _allServices.Where(s =>
 ⋮----
 if (CbFilterStatus.SelectedItem is string statusSel && !string.Equals(statusSel, "All", StringComparison.OrdinalIgnoreCase))
 ⋮----
-working = working.Where(s => s.Status == parsedStatus).ToList();
-⋮----
+working = [.. working.Where(s => s.Status == parsedStatus)];
 if (CbFilterStartMode.SelectedItem is string startSel && !string.Equals(startSel, "All", StringComparison.OrdinalIgnoreCase))
 ⋮----
-working = working.Where(s => s.StartMode == parsedStart).ToList();
+working = [.. working.Where(s => s.StartMode == parsedStart)];
 ⋮----
 // swallow filter errors — filters are convenience UI only
 ⋮----
@@ -1448,8 +1607,8 @@ if (!string.IsNullOrEmpty(_sortPropertyName) && _sortOrder != SortOrder.None)
 ⋮----
 var prop = typeof(Service).GetProperty(_sortPropertyName!);
 ⋮----
-? working.OrderBy(s => prop.GetValue(s, null)).ToList()
-: working.OrderByDescending(s => prop.GetValue(s, null)).ToList();
+? [.. working.OrderBy(s => prop.GetValue(s, null))]
+: [.. working.OrderByDescending(s => prop.GetValue(s, null))];
 ⋮----
 // ChangeStartMode helper methods are defined after this method
 // Update header glyphs and font: reset all, then apply only when there's an active sort (Asc/Desc)
@@ -1461,18 +1620,24 @@ var col = GridServs.Columns.Cast<DataGridViewColumn>().FirstOrDefault(c => c.Dat
 ⋮----
 col.HeaderCell.Style.Font = new Font(GridServs.Font, FontStyle.Bold);
 ⋮----
-serviceBindingSource.ResetBindings(false);
 // Ensure the DataGridView repaints so the sort glyph is shown/cleared immediately
-⋮----
+GridServs.Refresh();
 // If we have a sorted column, invalidate its header to ensure glyph is painted
 ⋮----
-var idx = GridServs.Columns.Cast<DataGridViewColumn>().ToList().FindIndex(c => c.DataPropertyName == _sortPropertyName || c.Name == _sortPropertyName);
+.ToList()
+.FindIndex(c => c.DataPropertyName == _sortPropertyName || c.Name == _sortPropertyName);
 ⋮----
 GridServs.InvalidateColumn(idx);
 // additional aggressive repaints
 GridServs.Invalidate();
 GridServs.Update();
 // clear any selection that might leave header visually selected
+⋮----
+private void _servicesList_ListChanged(object? sender, ListChangedEventArgs e)
+⋮----
+private void UpdateServiceStatusLabels()
+⋮----
+LblStatusServicesRunning.Text = $"Running: {_servicesList.Count(s => s.Status == ServiceControllerStatus.Running)}";
 ⋮----
 private void BtnChangeStartMode_Click(object? sender, EventArgs e)
 ⋮----
@@ -1487,39 +1652,26 @@ var newMode = dlg.SelectedMode; // 'Automatic' | 'Manual' | 'Disabled'
 ⋮----
 Task.Run(() =>
 ⋮----
-using var key = Registry.LocalMachine.OpenSubKey($"SYSTEM\\CurrentControlSet\\Services\\{serv.ServiceName}", writable: true);
-⋮----
-results.Add(msg);
-⋮----
-key.SetValue("Start", startValue, RegistryValueKind.DWord);
+_registryEditor.SetDwordInLocalMachine(subKey, "Start", startValue);
 ⋮----
 results.Add(okMsg);
 ⋮----
 results.Add(err);
 ⋮----
 // Refresh list on UI thread and show summary
-this.InvokeIfRequired(() =>
 ⋮----
 var summary = string.Join(Environment.NewLine, results);
 MessageBox.Show(this, summary, $"Start Type changed to \"{newMode}\".", MessageBoxButtons.OK, MessageBoxIcon.Information);
 ⋮----
 private static int StartModeToDword(string mode)
 ⋮----
-private void GridServs_ColumnHeaderMouseClick(object? sender, DataGridViewCellMouseEventArgs e)
-⋮----
-// cycle: None -> Asc -> Desc -> None
-⋮----
-// clear property when cycling back to no-sort
-⋮----
 private void GridServs_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
 ⋮----
 // Color the entire row by status
 ⋮----
-row.DefaultCellStyle.BackColor = Color.FromArgb(230, 255, 230); // light green
-⋮----
-row.DefaultCellStyle.BackColor = Color.FromArgb(255, 230, 230); // light red
-⋮----
-row.DefaultCellStyle.BackColor = Color.FromArgb(255, 255, 230); // light yellow
+ServiceControllerStatus.Running => Color.FromArgb(230, 255, 230), // light green
+ServiceControllerStatus.Stopped => Color.FromArgb(255, 230, 230), // light red
+ServiceControllerStatus.Paused => Color.FromArgb(255, 255, 230),  // light yellow
 ⋮----
 // For the Status column, prefix with an emoji
 ⋮----
@@ -1541,11 +1693,17 @@ MessageBox.Show(this, "Please select only services that are stopped to start.", 
 ⋮----
 if (MessageBox.Show(this, $"Start {selectedServices.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
 ⋮----
-await _serviceManager.StartServiceAsync(serv.ServiceName);
+// ReSharper disable once MethodHasAsyncOverload
+⋮----
+_currentOperationCts = new CancellationTokenSource();
+⋮----
+var results = await _orchestrator.StartServicesAsync(selectedServices, _currentOperationCts.Token);
+⋮----
+if (results.TryGetValue(serv.ServiceName, out var ok) && ok)
 ⋮----
 _logger.LogInformation("Started service {ServiceName}", serv.ServiceName);
 ⋮----
-_logger.LogError(ex, "Failed to start service {ServiceName}", serv.ServiceName);
+_logger.LogError("Failed to start service {ServiceName}", serv.ServiceName);
 ⋮----
 private async void BtnStop_Click(object? sender, EventArgs e)
 ⋮----
@@ -1556,11 +1714,11 @@ MessageBox.Show(this, "Please select only services that are running or paused to
 ⋮----
 if (MessageBox.Show(this, $"Stop {selectedServices.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
 ⋮----
-await _serviceManager.StopServiceAsync(serv.ServiceName);
+var results = await _orchestrator.StopServicesAsync(selectedServices, _currentOperationCts.Token);
 ⋮----
 _logger.LogInformation("Stopped service {ServiceName}", serv.ServiceName);
 ⋮----
-_logger.LogError(ex, "Failed to stop service {ServiceName}", serv.ServiceName);
+_logger.LogError("Failed to stop service {ServiceName}", serv.ServiceName);
 ⋮----
 private async void BtnRestart_Click(object? sender, EventArgs e)
 ⋮----
@@ -1571,70 +1729,25 @@ MessageBox.Show(this, "Please select only services that are running or paused to
 ⋮----
 if (MessageBox.Show(this, $"Restart {sel.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
 ⋮----
-// Stop then start using the service manager to centralize logic
-await _serviceManager.StopServiceAsync(s.ServiceName);
-await _serviceManager.StartServiceAsync(s.ServiceName);
+var results = await _orchestrator.RestartServicesAsync(sel, _currentOperationCts.Token);
+⋮----
+if (results.TryGetValue(s.ServiceName, out var ok) && ok)
 ⋮----
 _logger.LogInformation("Restarted service {ServiceName}", s.ServiceName);
 ⋮----
-_logger.LogError(ex, "Failed to restart service {ServiceName}", s.ServiceName);
-⋮----
-private void LoadColumnWidths()
-⋮----
-var map = ColumnWidthStore.Load();
-⋮----
-if (!map.TryGetValue(col.Name, out var w) || w <= 0)
-⋮----
-// When width explicitly set, change autosize to None so it persists
-⋮----
-_logger.LogError(ex, "Failed to load column widths");
-⋮----
-// Persist app settings when user toggles checkbox
-private void ChkAutoWidth_CheckedChanged(object? sender, EventArgs e)
-⋮----
-// Switching to auto-width mode
-⋮----
-// Switching to manual mode - load saved widths
-ApplyColumnSizing(); // First set all to None
-LoadColumnWidths();  // Then apply saved widths
-⋮----
-private async void ChkShowPath_CheckedChanged(object? sender, EventArgs e)
-⋮----
-private void SaveColumnWidths()
-⋮----
-var map = GridServs.Columns.Cast<DataGridViewColumn>().ToDictionary(c => c.Name, c => c.Width);
-ColumnWidthStore.Save(map);
-⋮----
-_logger.LogError(ex, "Failed to save column widths");
-⋮----
-private void GridServs_ColumnWidthChanged(object? sender, DataGridViewColumnEventArgs e)
+_logger.LogError("Failed to restart service {ServiceName}", s.ServiceName);
 ⋮----
 private void FormPrincipal_FormClosing(object? sender, FormClosingEventArgs e)
+⋮----
+// Save current window bounds/state to config
+⋮----
+_appConfig.WindowState = WindowState.ToString();
+⋮----
+_logger.LogError(ex, "Failed to save window bounds");
 ⋮----
 private void FormPrincipal_KeyDown(object sender, KeyEventArgs e)
 ⋮----
 TxtFilter.Focus();
 ⋮----
 TxtFilter.Clear();
-⋮----
-private async Task TogglePathColumnVisibilityAsync()
-⋮----
-// Suspend layout to avoid flickering
-⋮----
-// Apply column sizing to adjust layout immediately
-⋮----
-// If hiding the column, we're done
-⋮----
-var servicesToUpdate = _servicesList.Where(s => string.IsNullOrEmpty(s.Path)).ToList();
-⋮----
-// Run the path loading in a background thread to avoid UI freezing
-await Task.Run(() =>
-⋮----
-using var pathHelper = new ServicePathHelper();
-⋮----
-service.Path = pathHelper.GetExecutablePath(service.ServiceName) ?? string.Empty;
-⋮----
-// Notify the binding source that data changed
-⋮----
-// Reapply column sizing after data is loaded
-````
+```

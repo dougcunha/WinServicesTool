@@ -1,13 +1,12 @@
 # Add patterns to ignore here, one per line
-# Example:
-# *.log
-# tmp/
+
 *.resx
 .github/**
 *.DotSettings
 .gitattributes
 .gitignore
 REQUIREMENTS.md
+README.md
 .repomixignore
 column_widths.json
 app_config.json
