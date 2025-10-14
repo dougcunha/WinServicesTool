@@ -20,8 +20,8 @@ public static class ServiceTypeHelper
     public static string Describe(this ServiceTypeEx rawType)
     {
         var parts = (from flag in Enum.GetValues<ServiceTypeEx>()
-            where rawType.HasFlag(flag)
-            select flag.ToString()).ToList();
+                     where rawType.HasFlag(flag)
+                     select flag.ToString()).ToList();
 
         return parts.Count > 0
             ? string.Join(" + ", parts)

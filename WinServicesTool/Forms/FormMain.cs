@@ -761,6 +761,7 @@ public sealed partial class FormMain : Form
             switch (level)
             {
                 case LogLevel.Error:
+                    #pragma warning disable CA2254
                     _logger.LogError(message);
                     break;
                 case LogLevel.Warning:
@@ -768,6 +769,7 @@ public sealed partial class FormMain : Form
                     break;
                 default:
                     _logger.LogInformation(message);
+                    #pragma warning restore CA2254
                     break;
             }
 
