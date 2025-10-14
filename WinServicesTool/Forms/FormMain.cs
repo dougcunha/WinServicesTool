@@ -419,7 +419,8 @@ public sealed partial class FormMain : Form
 
             if (string.IsNullOrEmpty(path) || !File.Exists(path))
             {
-                AppendLog($"Service executable path not found for {selected[0].ServiceName}", LogLevel.Warning);
+                AppendLog($"Service executable path not found for {selected[0].ServiceName}");
+                _logger.LogDebug("Service executable path not found for {ServiceName}", selected[0].ServiceName);
 
                 return;
             }
@@ -431,7 +432,7 @@ public sealed partial class FormMain : Form
         }
         catch (Exception ex)
         {
-            AppendLog($"Failed to open service path: {ex.Message}", LogLevel.Error);
+            AppendLog($"Failed to open service path: {ex.Message}");
             _logger.LogError(ex, "Failed to open service path for {ServiceName}", selected[0].ServiceName);
         }
     }
@@ -471,12 +472,13 @@ public sealed partial class FormMain : Form
                 // Refresh the grid to show updated values
                 GridServs.Refresh();
 
-                AppendLog($"Service information updated for {service.ServiceName}", LogLevel.Information);
+                AppendLog($"Service information updated for {service.ServiceName}");
+                _logger.LogDebug("Service information updated for {ServiceName}", service.ServiceName);
             }
         }
         catch (Exception ex)
         {
-            AppendLog($"Failed to edit service info: {ex.Message}", LogLevel.Error);
+            AppendLog($"Failed to edit service info: {ex.Message}");
             _logger.LogError(ex, "Failed to edit service info for {ServiceName}", service.ServiceName);
         }
     }
@@ -557,7 +559,9 @@ public sealed partial class FormMain : Form
 
             using var dlg = new FormColumnChooser([.. GridServs.Columns.Cast<DataGridViewColumn>()], visibleColumns);
 
+            #pragma warning disable WFO5002
             if (await dlg.ShowDialogAsync(this) != DialogResult.OK)
+            #pragma warning restore WFO5002
                 return;
 
             // Update config with selected columns
@@ -572,7 +576,7 @@ public sealed partial class FormMain : Form
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error showing column chooser dialog");
-            AppendLog($"Failed to update column visibility: {ex.Message}", LogLevel.Error);
+            AppendLog($"Failed to update column visibility: {ex.Message}");
         }
     }
 
@@ -612,7 +616,7 @@ public sealed partial class FormMain : Form
 
             using var g = GridServs.CreateGraphics();
             var headerStyle = GridServs.ColumnHeadersDefaultCellStyle;
-            var font = headerStyle.Font ?? GridServs.Font;
+            var font = headerStyle.Font;
 
             foreach (DataGridViewColumn col in GridServs.Columns)
             {
@@ -864,42 +868,23 @@ public sealed partial class FormMain : Form
             }
             catch (Exception ex)
             {
-                AppendLog($"Failed to open registry for {serviceName}: {ex.Message}", LogLevel.Error);
+                AppendLog($"Failed to open registry for {serviceName}: {ex.Message}");
                 _logger.LogError(ex, "Failed to open registry for service {ServiceName}", serviceName);
             }
         }
         catch (Exception ex)
         {
-            AppendLog($"Failed to open registry for {serviceName}: {ex.Message}", LogLevel.Error);
+            AppendLog($"Failed to open registry for {serviceName}: {ex.Message}");
             _logger.LogError(ex, "Failed to open registry for service {ServiceName}", serviceName);
         }
     }
 
-    private void AppendLog(string message, LogLevel level = LogLevel.Information)
+    private void AppendLog(string message)
     {
         try
         {
             var ts = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             var line = $"[{ts}] {message}{Environment.NewLine}";
-
-            // Log to injected logger
-            switch (level)
-            {
-                case LogLevel.Error:
-#pragma warning disable CA2254
-                    _logger.LogError(message);
-
-                    break;
-                case LogLevel.Warning:
-                    _logger.LogWarning(message);
-
-                    break;
-                default:
-                    _logger.LogInformation(message);
-
-                    break;
-#pragma warning restore CA2254
-            }
 
             // Append to TextLog on UI thread and auto-scroll to bottom
             void AppendAndScroll()
@@ -1027,7 +1012,7 @@ public sealed partial class FormMain : Form
         catch (Exception ex)
         {
             MessageBox.Show(this, $"Failed to load services: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            AppendLog($"Failed to load services: {ex.Message}", LogLevel.Error);
+            AppendLog($"Failed to load services: {ex.Message}");
             _logger.LogError(ex, "Failed to load services");
         }
         finally
@@ -1229,8 +1214,9 @@ public sealed partial class FormMain : Form
                 catch (Exception ex)
                 {
                     var err = $"[{serv.ServiceName}] Failed to change StartType: {ex.Message}";
-                    AppendLog(err, LogLevel.Error);
+                    AppendLog(err);
                     results.Add(err);
+                    _logger.LogError(ex, "Failed to change StartType for service {ServiceName}", serv.ServiceName);
                 }
             }
 
@@ -1311,7 +1297,8 @@ public sealed partial class FormMain : Form
         if (selectedServices.Any(s => s.GetStatus() != ServiceControllerStatus.Stopped))
         {
             MessageBox.Show(this, "Please select only services that are stopped to start.", "Start services", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            AppendLog("Start aborted: selection contains non-stopped services.", LogLevel.Warning);
+            AppendLog("Start aborted: selection contains non-stopped services.");
+            _logger.LogDebug("Start aborted: selection contains non-stopped services.");
 
             return;
         }
@@ -1339,7 +1326,7 @@ public sealed partial class FormMain : Form
                 }
                 else
                 {
-                    AppendLog($"Failed to start {serv.ServiceName}", LogLevel.Error);
+                    AppendLog($"Failed to start {serv.ServiceName}");
                     _logger.LogError("Failed to start service {ServiceName}", serv.ServiceName);
                 }
             }
@@ -1366,7 +1353,8 @@ public sealed partial class FormMain : Form
         if (selectedServices.Any(s => s.GetStatus() != ServiceControllerStatus.Running && s.GetStatus() != ServiceControllerStatus.Paused))
         {
             MessageBox.Show(this, "Please select only services that are running or paused to stop.", "Stop services", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            AppendLog("Stop aborted: selection contains services not running/paused.", LogLevel.Warning);
+            AppendLog("Stop aborted: selection contains services not running/paused.");
+            _logger.LogDebug("Stop aborted: selection contains services not running/paused.");
 
             return;
         }
@@ -1394,7 +1382,7 @@ public sealed partial class FormMain : Form
                 }
                 else
                 {
-                    AppendLog($"Failed to stop {serv.ServiceName}", LogLevel.Error);
+                    AppendLog($"Failed to stop {serv.ServiceName}");
                     _logger.LogError("Failed to stop service {ServiceName}", serv.ServiceName);
                 }
             }
@@ -1447,7 +1435,7 @@ public sealed partial class FormMain : Form
                 }
                 else
                 {
-                    AppendLog($"Failed to restart {s.ServiceName}", LogLevel.Error);
+                    AppendLog($"Failed to restart {s.ServiceName}");
                     _logger.LogError("Failed to restart service {ServiceName}", s.ServiceName);
                 }
             }
