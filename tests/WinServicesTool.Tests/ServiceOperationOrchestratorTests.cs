@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Shouldly;
-using WinServicesTool.Models;
 using WinServicesTool.Services;
 using Xunit;
 
@@ -14,16 +13,16 @@ public sealed class ServiceOperationOrchestratorTests
     public async Task StartServices_WhenSomeFail_ReturnsCorrectMap()
     {
         // Arrange
-        var svcManager = Substitute.For<IWindowsServiceManager>();
-        svcManager.StartServiceAsync("ok").Returns(Task.CompletedTask);
-        svcManager.When(x => x.StartServiceAsync("bad")).Do(_ => throw new Exception("fail"));
+        var serviceHelper = Substitute.For<IServicePathHelper>();
+        serviceHelper.StartServiceAsync("ok").Returns(Task.CompletedTask);
+        serviceHelper.When(x => x.StartServiceAsync("bad")).Do(_ => throw new Exception("fail"));
 
-        var orchestrator = new ServiceOperationOrchestrator(svcManager, NullLogger<ServiceOperationOrchestrator>.Instance);
+        var orchestrator = new ServiceOperationOrchestrator(serviceHelper, NullLogger<ServiceOperationOrchestrator>.Instance);
 
-        var services = new List<Service>
+        var services = new List<ServiceConfiguration>
         {
-            new() { ServiceName = "ok", DisplayName = "OK", Status = System.ServiceProcess.ServiceControllerStatus.Stopped },
-            new() { ServiceName = "bad", DisplayName = "Bad", Status = System.ServiceProcess.ServiceControllerStatus.Stopped }
+            new() { ServiceName = "ok", DisplayName = "OK", CurrentState = ServiceState.Stopped },
+            new() { ServiceName = "bad", DisplayName = "Bad", CurrentState = ServiceState.Stopped }
         };
 
         // Act

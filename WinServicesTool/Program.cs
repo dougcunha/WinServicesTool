@@ -7,13 +7,13 @@ using WinServicesTool.Utils;
 
 var services = new ServiceCollection();
 services.AddSingleton<FormMain>();
-services.AddSingleton<IWindowsServiceManager, WindowsServiceManager>();
+services.AddSingleton<IServicePathHelper, ServicePathHelperFactory>();
 services.AddSingleton<IPrivilegeService, PrivilegeService>();
 services.AddTransient<IServiceOperationOrchestrator, ServiceOperationOrchestrator>();
 services.AddSingleton<IRegistryService, RegistryService>();
 services.AddSingleton<IRegistryEditor, RegistryEditor>();
 services.AddSingleton<IProcessLauncher, ProcessLauncher>();
-services.AddSingleton<AppConfig>(_ => AppConfig.Load());
+services.AddSingleton(_ => AppConfig.Load());
 
 // Add NLog
 services.AddLogging(builder =>

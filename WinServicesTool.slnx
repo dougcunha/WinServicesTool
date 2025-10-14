@@ -1,4 +1,11 @@
 <Solution>
+  <Folder Name="/conf/">
+    <File Path=".editorconfig" />
+    <File Path=".repomixignore" />
+    <File Path="README.md" />
+    <File Path="repomix-output.md" />
+    <File Path="repomix.config.json" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/WinServicesTool.Tests/WinServicesTool.Tests.csproj" />
   </Folder>

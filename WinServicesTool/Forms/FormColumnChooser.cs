@@ -118,9 +118,7 @@ public sealed class FormColumnChooser : Form
                 return;
 
             // Map checked captions back to column names
-            ChosenColumnNames = _lstColumns.CheckedIndices.Cast<int>()
-                .Select(i => columns[i].Name)
-                .ToList();
+            ChosenColumnNames = [.. _lstColumns.CheckedIndices.Cast<int>().Select(i => columns[i].Name)];
 
             DialogResult = DialogResult.OK;
             Close();

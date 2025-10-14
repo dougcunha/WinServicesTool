@@ -6,8 +6,6 @@ namespace WinServicesTool.Services;
 
 public sealed class PrivilegeService(ILogger<PrivilegeService> logger) : IPrivilegeService
 {
-    private readonly ILogger<PrivilegeService> _logger = logger;
-
     public bool IsAdministrator()
     {
         try
@@ -19,7 +17,7 @@ public sealed class PrivilegeService(ILogger<PrivilegeService> logger) : IPrivil
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to determine administrator status");
+            logger.LogWarning(ex, "Failed to determine administrator status");
             return false;
         }
     }
@@ -55,7 +53,7 @@ public sealed class PrivilegeService(ILogger<PrivilegeService> logger) : IPrivil
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to relaunch elevated");
+            logger.LogError(ex, "Failed to relaunch elevated");
             MessageBox.Show(owner, "Unable to start the application with elevated privileges.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }

@@ -2,7 +2,6 @@
 using System.ServiceProcess;
 using Microsoft.Extensions.Logging;
 using WinServicesTool.Extensions;
-using WinServicesTool.Models;
 using WinServicesTool.Services;
 using WinServicesTool.Utils;
 
@@ -15,31 +14,30 @@ public sealed partial class FormMain : Form
     private readonly AppConfig _appConfig;
 
     // Timer used to debounce form resize events when AutoWidthColumns is enabled
-    private BindingList<Service> _servicesList = [];
-    private List<Service> _allServices = [];
+    private BindingList<ServiceConfiguration> _servicesList = [];
+    private List<ServiceConfiguration> _allServices = [];
     private CancellationTokenSource? _filterCts;
     private string? _sortPropertyName;
     private SortOrder _sortOrder = SortOrder.None;
     private readonly ILogger<FormMain> _logger;
-    private readonly IWindowsServiceManager _serviceManager;
+    private readonly IServicePathHelper _serviceHelper;
     private readonly IPrivilegeService _privilegeService;
     private readonly IServiceOperationOrchestrator _orchestrator;
     private readonly IRegistryService _registryService;
     private readonly IRegistryEditor _registryEditor;
-
-    /// <summary>
-    /// Delegate used to open Regedit for a given registry path. Tests can replace this delegate
-    /// to avoid starting external processes.
-    /// </summary>
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    internal Action<string>? RegeditOpener { get; set; }
     private CancellationTokenSource? _currentOperationCts;
     private bool _shouldSaveOnClose;
+
+    // Store original FillWeight values to detect user modifications
+    private readonly Dictionary<string, float> _originalFillWeights = [];
+
+    // Flag to prevent saving column settings during initialization
+    private bool _isInitializingColumns;
 
     public FormMain
     (
         ILogger<FormMain> logger,
-        IWindowsServiceManager serviceManager,
+        IServicePathHelper serviceHelper,
         IPrivilegeService privilegeService,
         IServiceOperationOrchestrator orchestrator,
         IRegistryService registryService,
@@ -52,11 +50,12 @@ public sealed partial class FormMain : Form
         // Show the app name and version in the title bar
         Text = $"Windows Services Tool v{Application.ProductVersion}";
 
+        ProgressBar.Visible = false;
         LblStatusServices.Text = "Loading...";
         LblStatusServicesRunning.Text = "Loading...";
         _appConfig = appConfig;
         _logger = logger;
-        _serviceManager = serviceManager;
+        _serviceHelper = serviceHelper;
         _privilegeService = privilegeService;
         _orchestrator = orchestrator;
         _registryService = registryService;
@@ -71,6 +70,8 @@ public sealed partial class FormMain : Form
         GridServs.CellPainting += GridServs_CellPainting;
         GridServs.MouseUp += GridServs_MouseUp;
         GridServs.SelectionChanged += GridServs_SelectionChanged;
+        GridServs.ColumnWidthChanged += GridServs_ColumnWidthChanged;
+        GridServs.ColumnDisplayIndexChanged += GridServs_ColumnDisplayIndexChanged;
         TxtFilter.TextChanged += TxtFilter_TextChanged;
         CbFilterStatus.SelectedIndexChanged += (_, _) => ApplyFilterAndSort();
         CbFilterStartMode.SelectedIndexChanged += (_, _) => ApplyFilterAndSort();
@@ -91,6 +92,10 @@ public sealed partial class FormMain : Form
         if (_privilegeService.IsAdministrator())
         {
             _shouldSaveOnClose = true;
+
+            // Initialize columns before loading services
+            InitializeColumns();
+
             BtnLoad_Click(null, EventArgs.Empty);
 
             return;
@@ -100,13 +105,36 @@ public sealed partial class FormMain : Form
         _privilegeService.AskAndRestartAsAdmin(this, _appConfig.AlwaysStartsAsAdministrator);
     }
 
-    private async void AppConfigChanged(object? sender, PropertyChangedEventArgs e)
+    private void AppConfigChanged(object? sender, PropertyChangedEventArgs e)
     {
         _appConfig.Save();
 
         // Handle dynamic column visibility changes
         if (e.PropertyName == nameof(AppConfig.VisibleColumns))
-            await ApplyColumnVisibilityAsync();
+            ApplyColumnVisibility();
+    }
+
+    /// <summary>
+    /// Initializes column order, widths, and visibility from saved configuration.
+    /// Must be called before loading data to prevent incorrect saves during initialization.
+    /// </summary>
+    private void InitializeColumns()
+    {
+        // Set flag to prevent saving during initialization
+        _isInitializingColumns = true;
+
+        try
+        {
+            RestoreColumnOrder();
+            RestoreColumnWidths();
+            CaptureOriginalColumnWidths();
+            ApplyColumnVisibility();
+        }
+        finally
+        {
+            // Allow saving after initialization is complete
+            _isInitializingColumns = false;
+        }
     }
 
     // Designer-based filter controls are wired in constructor
@@ -117,10 +145,19 @@ public sealed partial class FormMain : Form
         {
             _shouldSaveOnClose = false;
             Close();
+
+            return;
         }
 
-        // Apply column visibility from config
-        await ApplyColumnVisibilityAsync();
+        // If columns weren't initialized in constructor (e.g., not admin on first run),
+        // initialize them now
+        if (_originalFillWeights.Count != 0)
+            return;
+
+        InitializeColumns();
+
+        // Wait a bit for async initialization to complete
+        await Task.Delay(100);
     }
 
     private void FormPrincipal_Shown(object? sender, EventArgs e)
@@ -167,7 +204,7 @@ public sealed partial class FormMain : Form
             CbFilterStatus.Items.Clear();
             CbFilterStatus.Items.Add("All");
 
-            foreach (var st in _allServices.Select(s => s.Status).Distinct().Order())
+            foreach (var st in _allServices.Select(s => s.GetStatus()).Distinct().Order())
                 CbFilterStatus.Items.Add(st.ToString());
 
             if (!string.IsNullOrEmpty(prevStatus) && CbFilterStatus.Items.Contains(prevStatus))
@@ -178,7 +215,7 @@ public sealed partial class FormMain : Form
             CbFilterStartMode.Items.Clear();
             CbFilterStartMode.Items.Add("All");
 
-            foreach (var sm in _allServices.Select(static s => s.StartMode).Distinct().Order())
+            foreach (var sm in _allServices.Select(static s => s.GetStartMode()).Distinct().Order())
                 CbFilterStartMode.Items.Add(sm.ToString());
 
             if (!string.IsNullOrEmpty(prevStart) && CbFilterStartMode.Items.Contains(prevStart))
@@ -205,7 +242,7 @@ public sealed partial class FormMain : Form
                 return;
             }
 
-            var statuses = sel.Select(s => s.Status).Distinct().ToList();
+            var statuses = sel.Select(s => s.GetStatus()).Distinct().ToList();
 
             if (statuses.Count != 1)
             {
@@ -273,7 +310,7 @@ public sealed partial class FormMain : Form
             var menu = new ContextMenuStrip();
 
             // If all selected are stopped, show Start
-            if (selected.All(s => s.Status == ServiceControllerStatus.Stopped))
+            if (selected.All(s => s.GetStatus() == ServiceControllerStatus.Stopped))
             {
                 var startItem = new ToolStripMenuItem("Start") { Enabled = true };
                 startItem.Click += (_, _) => BtnStart_Click(this, EventArgs.Empty);
@@ -281,7 +318,7 @@ public sealed partial class FormMain : Form
             }
 
             // If any selected are running or paused, show Stop and Restart
-            if (selected.Any(s => s.Status is ServiceControllerStatus.Running or ServiceControllerStatus.Paused))
+            if (selected.Any(s => s.GetStatus() is ServiceControllerStatus.Running or ServiceControllerStatus.Paused))
             {
                 var stopItem = new ToolStripMenuItem("Stop") { Enabled = true };
                 stopItem.Click += (_, _) => BtnStop_Click(this, EventArgs.Empty);
@@ -376,6 +413,12 @@ public sealed partial class FormMain : Form
         ApplyFilterAndSort();
     }
 
+    private void GridServs_ColumnWidthChanged(object? sender, DataGridViewColumnEventArgs e)
+        => BeginInvoke(UpdateColumnHeaderHeight);
+
+    private void GridServs_ColumnDisplayIndexChanged(object? sender, DataGridViewColumnEventArgs e)
+        => SaveColumnOrder();
+
     private async Task ShowColumnChooserDialogAsync()
     {
         try
@@ -393,7 +436,7 @@ public sealed partial class FormMain : Form
             _appConfig.Save();
 
             // Apply visibility
-            await ApplyColumnVisibilityAsync();
+            ApplyColumnVisibility();
 
             AppendLog($"Column visibility updated. {dlg.ChosenColumnNames.Count} columns visible.");
         }
@@ -404,76 +447,279 @@ public sealed partial class FormMain : Form
         }
     }
 
-    private async Task LoadServicePathsAsync()
-    {
-        try
-        {
-            // Get services that don't have paths loaded yet
-            var servicesToUpdate = _servicesList.Where(s => string.IsNullOrEmpty(s.Path)).ToList();
-
-            if (servicesToUpdate.Count == 0)
-            {
-                AppendLog("All service paths already loaded.");
-
-                return;
-            }
-
-            AppendLog($"Loading paths for {servicesToUpdate.Count} services...");
-
-            // Run the path loading in a background thread to avoid UI freezing
-            await Task.Run(() =>
-            {
-                using var pathHelper = new ServicePathHelper();
-
-                foreach (var service in servicesToUpdate)
-                {
-                    try
-                    {
-                        service.Path = pathHelper.GetExecutablePath(service.ServiceName) ?? string.Empty;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to get path for service {ServiceName}", service.ServiceName);
-                        service.Path = string.Empty;
-                    }
-                }
-            });
-
-            // Notify the binding source that data changed
-            this.InvokeIfRequired(() =>
-            {
-                serviceBindingSource.ResetBindings(false);
-                AppendLog($"Loaded paths for {servicesToUpdate.Count} services.");
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error loading service paths");
-            AppendLog($"Failed to load service paths: {ex.Message}", LogLevel.Error);
-        }
-    }
-
-    private async Task ApplyColumnVisibilityAsync()
+    private void ApplyColumnVisibility()
     {
         try
         {
             var visibleColumns = _appConfig.VisibleColumns;
 
             if (visibleColumns.Count == 0)
-            {
-                await LoadServicePathsAsync();
-
                 return;
-            }
 
             foreach (DataGridViewColumn col in GridServs.Columns)
                 col.Visible = visibleColumns.Contains(col.Name);
 
-            await LoadServicePathsAsync();
+            UpdateColumnHeaderHeight();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error applying column visibility");
+        }
+    }
+
+    /// <summary>
+    /// Calculates and updates the column header height based on the maximum number of lines
+    /// in visible column headers.
+    /// </summary>
+    private void UpdateColumnHeaderHeight()
+    {
+        // Skip during initialization to avoid conflicts with auto-resize
+        if (_isInitializingColumns)
+            return;
+
+        try
+        {
+            var maxLines = 1;
+
+            using var g = GridServs.CreateGraphics();
+            var headerStyle = GridServs.ColumnHeadersDefaultCellStyle;
+            var font = headerStyle.Font ?? GridServs.Font;
+
+            foreach (DataGridViewColumn col in GridServs.Columns)
+            {
+                if (!col.Visible)
+                    continue;
+
+                // Measure the header text to determine how many lines it needs
+                var headerText = col.HeaderText;
+
+                if (string.IsNullOrEmpty(headerText))
+                    continue;
+
+                try
+                {
+                    // Calculate available width for text (column width minus padding)
+                    var availableWidth = col.Width - 10; // 10px padding
+
+                    if (availableWidth <= 0)
+                        continue;
+
+                    var textSize = g.MeasureString(headerText, font, availableWidth);
+                    var lineHeight = g.MeasureString("A", font).Height;
+                    var lines = (int)Math.Ceiling(textSize.Height / lineHeight);
+
+                    if (lines > maxLines)
+                        maxLines = lines;
+                }
+                catch (InvalidOperationException)
+                {
+                    // Ignore if operation cannot be performed during auto-resize
+                    // This can happen during Fill mode adjustments
+                }
+            }
+
+            // Set height based on maximum number of lines
+            try
+            {
+                GridServs.ColumnHeadersHeight = maxLines switch
+                {
+                    1 => ColumnHeaderHeightSettings.SINGLE_LINE_HEIGHT,
+                    2 => ColumnHeaderHeightSettings.TWO_LINE_HEIGHT,
+                    var _ => ColumnHeaderHeightSettings.THREE_LINE_HEIGHT
+                };
+
+                _logger.LogDebug("Column header height updated to {Height} for {MaxLines} lines", GridServs.ColumnHeadersHeight, maxLines);
+            }
+            catch (InvalidOperationException)
+            {
+                _logger.LogTrace("Column header height update deferred due to auto-resize");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating column header height");
+        }
+    }
+
+
+    /// <summary>
+    /// Saves the current display order of columns to the configuration.
+    /// </summary>
+    private void SaveColumnOrder()
+    {
+        // Don't save during initialization
+        if (_isInitializingColumns)
+            return;
+
+        try
+        {
+            // Sort columns by their DisplayIndex to get the actual display order
+            var columnOrder = GridServs.Columns
+                .Cast<DataGridViewColumn>()
+                .OrderBy(col => col.DisplayIndex)
+                .Select(col => col.Name)
+                .ToList();
+
+            _appConfig.ColumnOrder = columnOrder;
+            _appConfig.Save();
+
+            _logger.LogDebug("Saved column order: {ColumnOrder}", string.Join(", ", columnOrder));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving column order");
+        }
+    }
+
+    /// <summary>
+    /// Restores the display order of columns from the configuration.
+    /// </summary>
+    private void RestoreColumnOrder()
+    {
+        try
+        {
+            if (_appConfig.ColumnOrder.Count == 0)
+            {
+                _logger.LogDebug("No saved column order found");
+
+                return;
+            }
+
+            // Create a dictionary to quickly look up columns by name
+            var columnDict = GridServs.Columns.Cast<DataGridViewColumn>()
+                .ToDictionary(col => col.Name, col => col);
+
+            // Apply the saved order
+            var displayIndex = 0;
+
+            foreach (var columnName in _appConfig.ColumnOrder)
+            {
+                if (!columnDict.TryGetValue(columnName, out var column))
+                    continue;
+
+                column.DisplayIndex = displayIndex;
+                displayIndex++;
+            }
+
+            // Handle any columns that weren't in the saved order (e.g., newly added columns)
+            foreach (var col in GridServs.Columns.Cast<DataGridViewColumn>().Where(col => !_appConfig.ColumnOrder.Contains(col.Name)))
+            {
+                col.DisplayIndex = displayIndex;
+                displayIndex++;
+            }
+
+            _logger.LogDebug("Restored column order from config");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error restoring column order");
+        }
+    }
+
+    /// <summary>
+    /// Captures the original FillWeight values of all columns.
+    /// Should be called once after the form is initialized and before user interactions.
+    /// </summary>
+    private void CaptureOriginalColumnWidths()
+    {
+        try
+        {
+            _originalFillWeights.Clear();
+
+            foreach (DataGridViewColumn col in GridServs.Columns)
+                _originalFillWeights[col.Name] = col.FillWeight;
+
+            _logger.LogDebug("Captured original FillWeight values for {Count} columns", _originalFillWeights.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error capturing original column widths");
+        }
+    }
+
+    /// <summary>
+    /// Saves the current FillWeight of columns that have been modified by the user.
+    /// Only stores columns with widths different from their original values.
+    /// </summary>
+    private void SaveColumnWidths()
+    {
+        // Don't save during initialization
+        if (_isInitializingColumns)
+            return;
+
+        try
+        {
+            var modifiedWidths = new Dictionary<string, float>();
+
+            foreach (DataGridViewColumn col in GridServs.Columns)
+            {
+                // Only save if the FillWeight has changed from the original
+                if (!_originalFillWeights.TryGetValue(col.Name, out var originalWeight))
+                    continue;
+
+                // Use a small tolerance for floating point comparison
+                if (Math.Abs(col.FillWeight - originalWeight) > 0.01f)
+                    modifiedWidths[col.Name] = col.FillWeight;
+            }
+
+            _appConfig.ColumnFillWeights = modifiedWidths;
+            _appConfig.Save();
+
+            if (modifiedWidths.Count > 0)
+                _logger.LogDebug("Saved {Count} modified column widths", modifiedWidths.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving column widths");
+        }
+    }
+
+    /// <summary>
+    /// Restores saved FillWeight values for columns that were previously modified.
+    /// </summary>
+    private void RestoreColumnWidths()
+    {
+        try
+        {
+            if (_appConfig.ColumnFillWeights.Count == 0)
+            {
+                _logger.LogDebug("No saved column widths found");
+
+                return;
+            }
+
+            // Temporarily disable auto-size to prevent the grid from adjusting other columns
+            var originalAutoSizeMode = GridServs.AutoSizeColumnsMode;
+            GridServs.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+
+            try
+            {
+                foreach (var kvp in _appConfig.ColumnFillWeights)
+                {
+                    var columnName = kvp.Key;
+                    var fillWeight = kvp.Value;
+
+                    var column = GridServs.Columns.Cast<DataGridViewColumn>()
+                        .FirstOrDefault(col => col.Name == columnName);
+
+                    if (column != null)
+                    {
+                        column.FillWeight = fillWeight;
+                        _logger.LogTrace("Restored FillWeight {FillWeight} for column {ColumnName}", fillWeight, columnName);
+                    }
+                }
+
+                _logger.LogDebug("Restored {Count} column widths from config", _appConfig.ColumnFillWeights.Count);
+            }
+            finally
+            {
+                // Restore auto-size mode
+                GridServs.AutoSizeColumnsMode = originalAutoSizeMode;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error restoring column widths");
         }
     }
 
@@ -488,16 +734,8 @@ public sealed partial class FormMain : Form
 
             try
             {
-                if (RegeditOpener != null)
-                {
-                    RegeditOpener(registryPath);
-                    AppendLog($"Requested Regedit to open at: {registryPath} (via delegate)");
-                }
-                else
-                {
-                    _registryService.SetRegeditLastKey(registryPath);
-                    AppendLog($"Requested Regedit to open at: {registryPath}");
-                }
+                _registryService.SetRegeditLastKey(registryPath);
+                AppendLog($"Requested Regedit to open at: {registryPath}");
             }
             catch (Exception ex)
             {
@@ -624,13 +862,32 @@ public sealed partial class FormMain : Form
 
         try
         {
-            _allServices = await _serviceManager.GetServicesAsync();
+            ProgressBar.Visible = true;
+            var servicesNames = _serviceHelper.GetAllServiceNames();
+            ProgressBar.Minimum = 0;
+            ProgressBar.Maximum = servicesNames.Length;
+            ProgressBar.Step = 1;
+
+            var allServices = await _serviceHelper.GetServiceConfigurationsAsync
+            (
+                servicesNames,
+                new Progress<int>(completed => this.InvokeIfRequired(() => ProgressBar.Value = completed)),
+                CancellationToken.None
+            );
+
+            _allServices = [.. allServices.Values.Where(s => s != null).Select(s => s!).OrderBy(s => s.DisplayName)];
 
             // Update the filter dropdowns to show only values present in the loaded list
             UpdateFilterLists();
 
             // Now populate the grid with data
             ApplyFilterAndSort();
+
+            // Update column header height after data is loaded and columns have their final widths
+            // Use a small delay to ensure all auto-resize operations are complete
+            await Task.Delay(50);
+            UpdateColumnHeaderHeight();
+
             AppendLog($"Loaded {_allServices.Count} services.");
         }
         catch (Exception ex)
@@ -641,6 +898,7 @@ public sealed partial class FormMain : Form
         }
         finally
         {
+            ProgressBar.Visible = false;
             BtnLoad.Enabled = true;
             Cursor.Current = previousCursor;
         }
@@ -680,7 +938,7 @@ public sealed partial class FormMain : Form
     {
         var text = TxtFilter.Text.Trim();
 
-        List<Service> working;
+        List<ServiceConfiguration> working;
 
         if (string.IsNullOrEmpty(text))
         {
@@ -701,11 +959,11 @@ public sealed partial class FormMain : Form
         {
             if (CbFilterStatus.SelectedItem is string statusSel && !string.Equals(statusSel, "All", StringComparison.OrdinalIgnoreCase))
                 if (Enum.TryParse<ServiceControllerStatus>(statusSel, out var parsedStatus))
-                    working = [.. working.Where(s => s.Status == parsedStatus)];
+                    working = [.. working.Where(s => s.GetStatus() == parsedStatus)];
 
             if (CbFilterStartMode.SelectedItem is string startSel && !string.Equals(startSel, "All", StringComparison.OrdinalIgnoreCase))
                 if (Enum.TryParse<ServiceStartMode>(startSel, out var parsedStart))
-                    working = [.. working.Where(s => s.StartMode == parsedStart)];
+                    working = [.. working.Where(s => s.GetStartMode() == parsedStart)];
         }
         catch
         {
@@ -715,7 +973,7 @@ public sealed partial class FormMain : Form
         // Apply sorting if requested
         if (!string.IsNullOrEmpty(_sortPropertyName) && _sortOrder != SortOrder.None)
         {
-            var prop = typeof(Service).GetProperty(_sortPropertyName!);
+            var prop = typeof(ServiceConfiguration).GetProperty(_sortPropertyName!);
 
             if (prop != null)
                 working = _sortOrder == SortOrder.Ascending
@@ -744,9 +1002,9 @@ public sealed partial class FormMain : Form
             }
         }
 
-        _servicesList = new BindingList<Service>(working);
+        _servicesList = new BindingList<ServiceConfiguration>(working);
         UpdateServiceStatusLabels();
-        _servicesList.ListChanged += _servicesList_ListChanged;
+        _servicesList.ListChanged += ServicesList_ListChanged;
         serviceBindingSource.DataSource = _servicesList;
         serviceBindingSource.ResetBindings(false);
 
@@ -772,13 +1030,13 @@ public sealed partial class FormMain : Form
         GridServs.ClearSelection();
     }
 
-    private void _servicesList_ListChanged(object? sender, ListChangedEventArgs e)
+    private void ServicesList_ListChanged(object? sender, ListChangedEventArgs e)
         => UpdateServiceStatusLabels();
 
     private void UpdateServiceStatusLabels()
     {
         LblStatusServices.Text = $"Services shown: {_servicesList.Count}";
-        LblStatusServicesRunning.Text = $"Running: {_servicesList.Count(s => s.Status == ServiceControllerStatus.Running)}";
+        LblStatusServicesRunning.Text = $"Running: {_servicesList.Count(s => s.GetStatus() == ServiceControllerStatus.Running)}";
     }
 
     private void BtnChangeStartMode_Click(object? sender, EventArgs e)
@@ -789,7 +1047,7 @@ public sealed partial class FormMain : Form
             return;
 
         // Preselect current start mode from first selected service
-        var initial = selecteds[0].StartMode switch
+        var initial = selecteds[0].GetStartMode() switch
         {
             ServiceStartMode.Automatic => "Automatic",
             ServiceStartMode.Manual => "Manual",
@@ -818,12 +1076,12 @@ public sealed partial class FormMain : Form
 
                     _registryEditor.SetDwordInLocalMachine(subKey, "Start", startValue);
 
-                    serv.StartMode = newMode switch
+                    serv.StartType = newMode switch
                     {
-                        "Automatic" => ServiceStartMode.Automatic,
-                        "Manual" => ServiceStartMode.Manual,
-                        "Disabled" => ServiceStartMode.Disabled,
-                        var _ => serv.StartMode
+                        "Automatic" => StartType.Automatic,
+                        "Manual" => StartType.Manual,
+                        "Disabled" => StartType.Disabled,
+                        var _ => serv.StartType
                     };
 
                     var okMsg = $"[{serv.ServiceName}] StartType defined as {newMode} (value {startValue}).";
@@ -864,7 +1122,7 @@ public sealed partial class FormMain : Form
             // Color the entire row by status
             var row = GridServs.Rows[e.RowIndex];
 
-            row.DefaultCellStyle.BackColor = item.Status switch
+            row.DefaultCellStyle.BackColor = item.GetStatus() switch
             {
                 ServiceControllerStatus.Running => Color.FromArgb(230, 255, 230), // light green
                 ServiceControllerStatus.Stopped => Color.FromArgb(255, 230, 230), // light red
@@ -875,20 +1133,20 @@ public sealed partial class FormMain : Form
             // For the Status column, prefix with an emoji
             var col = GridServs.Columns[e.ColumnIndex];
 
-            if (col.DataPropertyName != "Status" || e.Value == null)
+            if (col.DataPropertyName != "CurrentState" || e.Value == null)
                 return;
 
-            var status = (ServiceControllerStatus)e.Value;
+            var status = (ServiceState)e.Value;
 
             var prefix = status switch
             {
-                ServiceControllerStatus.Running => "🟢 ",
-                ServiceControllerStatus.Stopped => "🔴 ",
-                ServiceControllerStatus.Paused => "🟡 ",
+                ServiceState.Running => "🟢 ",
+                ServiceState.Stopped => "🔴 ",
+                ServiceState.Paused => "🟡 ",
                 var _ => "⚪ "
             };
 
-            e.Value = prefix + e.Value;
+            e.Value = prefix + status.ToServiceControllerStatus();
             e.FormattingApplied = true;
         }
         catch (Exception ex)
@@ -897,11 +1155,11 @@ public sealed partial class FormMain : Form
         }
     }
 
-    private IEnumerable<Service> GetSelectedServices()
+    private IEnumerable<ServiceConfiguration> GetSelectedServices()
         => GridServs.SelectedRows.Cast<DataGridViewRow>()
-            .Select(r => r.DataBoundItem as Service)
+            .Select(r => r.DataBoundItem as ServiceConfiguration)
             .Where(s => s != null)
-            .Cast<Service>();
+            .Cast<ServiceConfiguration>();
 
     private async void BtnStart_Click(object? sender, EventArgs e)
     {
@@ -911,7 +1169,7 @@ public sealed partial class FormMain : Form
             return;
 
         // Only allow starting services that are stopped
-        if (selectedServices.Any(s => s.Status != ServiceControllerStatus.Stopped))
+        if (selectedServices.Any(s => s.GetStatus() != ServiceControllerStatus.Stopped))
         {
             MessageBox.Show(this, "Please select only services that are stopped to start.", "Start services", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             AppendLog("Start aborted: selection contains non-stopped services.", LogLevel.Warning);
@@ -938,7 +1196,7 @@ public sealed partial class FormMain : Form
             foreach (var serv in selectedServices)
                 if (results.TryGetValue(serv.ServiceName, out var ok) && ok)
                 {
-                    serv.Status = ServiceControllerStatus.Running;
+                    serv.CurrentState = ServiceState.Running;
                     AppendLog($"Started: {serv.ServiceName} ({serv.DisplayName})");
                     _logger.LogInformation("Started service {ServiceName}", serv.ServiceName);
                 }
@@ -967,7 +1225,7 @@ public sealed partial class FormMain : Form
             return;
 
         // Only allow stopping services that are running or paused
-        if (selectedServices.Any(s => s.Status != ServiceControllerStatus.Running && s.Status != ServiceControllerStatus.Paused))
+        if (selectedServices.Any(s => s.GetStatus() != ServiceControllerStatus.Running && s.GetStatus() != ServiceControllerStatus.Paused))
         {
             MessageBox.Show(this, "Please select only services that are running or paused to stop.", "Stop services", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             AppendLog("Stop aborted: selection contains services not running/paused.", LogLevel.Warning);
@@ -994,7 +1252,7 @@ public sealed partial class FormMain : Form
             foreach (var serv in selectedServices)
                 if (results.TryGetValue(serv.ServiceName, out var ok) && ok)
                 {
-                    serv.Status = ServiceControllerStatus.Stopped;
+                    serv.CurrentState = ServiceState.Stopped;
                     AppendLog($"Stopped: {serv.ServiceName} ({serv.DisplayName})");
                     _logger.LogInformation("Stopped service {ServiceName}", serv.ServiceName);
                 }
@@ -1023,7 +1281,7 @@ public sealed partial class FormMain : Form
             return;
 
         // For restart, require services to be running or paused
-        if (sel.Any(s => s.Status != ServiceControllerStatus.Running && s.Status != ServiceControllerStatus.Paused))
+        if (sel.Any(s => s.GetStatus() != ServiceControllerStatus.Running && s.GetStatus() != ServiceControllerStatus.Paused))
         {
             MessageBox.Show(this, "Please select only services that are running or paused to restart.", "Restart services", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
@@ -1085,6 +1343,10 @@ public sealed partial class FormMain : Form
             _appConfig.WindowHeight = rect.Height;
             _appConfig.WindowState = WindowState.ToString();
             _appConfig.SplitterDistance = SplitMain.SplitterDistance;
+
+            // Save column widths before closing
+            SaveColumnWidths();
+
             _appConfig.Save();
         }
         catch (Exception ex)

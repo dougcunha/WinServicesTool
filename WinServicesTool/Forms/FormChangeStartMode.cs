@@ -34,7 +34,7 @@ public sealed class FormChangeStartMode : Form
             DropDownStyle = ComboBoxStyle.DropDownList
         };
 
-        _cmb.Items.AddRange(["Automatic", "Manual", "Disabled"]);
+        _cmb.Items.AddRange("Automatic", "Manual", "Disabled");
 
         // Try to select the initial mode if present
         var idx = _cmb.Items.IndexOf(initialMode);

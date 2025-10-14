@@ -1,8 +1,5 @@
-﻿using System;
-using System.Reflection;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using NSubstitute;
-using Shouldly;
 using WinServicesTool.Forms;
 using WinServicesTool.Services;
 using WinServicesTool.Utils;
@@ -17,7 +14,7 @@ public sealed class FormMainRegistryTests
     {
         // Arrange
         var logger = Substitute.For<ILogger<FormMain>>();
-        var winSvcMgr = Substitute.For<IWindowsServiceManager>();
+        var serviceHelper = Substitute.For<IServicePathHelper>();
         var priv = Substitute.For<IPrivilegeService>();
         var orchestrator = Substitute.For<IServiceOperationOrchestrator>();
         var registry = Substitute.For<IRegistryService>();
@@ -26,7 +23,7 @@ public sealed class FormMainRegistryTests
         var cfg = new AppConfig();
 
         // Create FormMain with mocked dependencies
-        var form = new FormMain(logger, winSvcMgr, priv, orchestrator, registry, registryEditor, cfg);
+        var form = new FormMain(logger, serviceHelper, priv, orchestrator, registry, registryEditor, cfg);
 
         var serviceName = "TestServiceName";
         var expectedPath = $"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\{serviceName}";

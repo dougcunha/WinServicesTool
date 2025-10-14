@@ -1,6 +1,4 @@
-﻿using Microsoft.Win32;
-
-namespace WinServicesTool.Services;
+﻿namespace WinServicesTool.Services;
 
 /// <summary>
 /// Abstraction for operations against the Windows Registry used by the UI.

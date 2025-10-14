@@ -47,15 +47,24 @@
             LblFilterStatus = new Label();
             LblStartMode = new Label();
             GridServs = new DataGridView();
-            ColDisplayName = new DataGridViewTextBoxColumn();
             ColServiceName = new DataGridViewTextBoxColumn();
-            ColStatus = new DataGridViewTextBoxColumn();
-            ColStartMode = new DataGridViewTextBoxColumn();
+            ColServiceStartName = new DataGridViewTextBoxColumn();
+            ColDisplayName = new DataGridViewTextBoxColumn();
+            ColDescription = new DataGridViewTextBoxColumn();
             ColServiceType = new DataGridViewTextBoxColumn();
+            ColStartType = new DataGridViewTextBoxColumn();
+            ColErrorControl = new DataGridViewTextBoxColumn();
+            ColBinaryPathName = new DataGridViewTextBoxColumn();
+            ColLoadOrderGroup = new DataGridViewTextBoxColumn();
+            ColTagId = new DataGridViewTextBoxColumn();
+            ColIsDelayedAutoStart = new DataGridViewCheckBoxColumn();
+            ColCurrentState = new DataGridViewTextBoxColumn();
+            ColProcessId = new DataGridViewTextBoxColumn();
+            ColWin32ExitCode = new DataGridViewTextBoxColumn();
+            ColServiceSpecificExitCode = new DataGridViewTextBoxColumn();
+            ColCanStop = new DataGridViewCheckBoxColumn();
             ColCanPauseAndContinue = new DataGridViewCheckBoxColumn();
             ColCanShutdown = new DataGridViewCheckBoxColumn();
-            ColCanStop = new DataGridViewCheckBoxColumn();
-            ColPath = new DataGridViewTextBoxColumn();
             serviceBindingSource = new BindingSource(components);
             TextLog = new RichTextBox();
             SplitMain = new SplitContainer();
@@ -63,6 +72,9 @@
             LblStatusServices = new ToolStripStatusLabel();
             LblStatusSeparator = new ToolStripStatusLabel();
             LblStatusServicesRunning = new ToolStripStatusLabel();
+            LblProgresso = new ToolStripStatusLabel();
+            ProgressBar = new ToolStripProgressBar();
+            dependenciesBindingSource = new BindingSource(components);
             tableLayoutPanel2.SuspendLayout();
             tableLayoutPanel3.SuspendLayout();
             tableLayoutPanelFilter.SuspendLayout();
@@ -73,6 +85,7 @@
             SplitMain.Panel2.SuspendLayout();
             SplitMain.SuspendLayout();
             StatusBar.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dependenciesBindingSource).BeginInit();
             SuspendLayout();
             // 
             // tableLayoutPanel2
@@ -316,9 +329,9 @@
             GridServs.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             GridServs.BorderStyle = BorderStyle.None;
             GridServs.CellBorderStyle = DataGridViewCellBorderStyle.None;
-            GridServs.ColumnHeadersHeight = 48;
+            GridServs.ColumnHeadersHeight = 60;
             GridServs.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            GridServs.Columns.AddRange(new DataGridViewColumn[] { ColDisplayName, ColServiceName, ColStatus, ColStartMode, ColServiceType, ColCanPauseAndContinue, ColCanShutdown, ColCanStop, ColPath });
+            GridServs.Columns.AddRange(new DataGridViewColumn[] { ColServiceName, ColServiceStartName, ColDisplayName, ColDescription, ColServiceType, ColStartType, ColErrorControl, ColBinaryPathName, ColLoadOrderGroup, ColTagId, ColIsDelayedAutoStart, ColCurrentState, ColProcessId, ColWin32ExitCode, ColServiceSpecificExitCode, ColCanStop, ColCanPauseAndContinue, ColCanShutdown });
             GridServs.DataSource = serviceBindingSource;
             GridServs.Dock = DockStyle.Fill;
             GridServs.Location = new Point(3, 93);
@@ -329,79 +342,153 @@
             GridServs.Size = new Size(1246, 465);
             GridServs.TabIndex = 0;
             // 
-            // ColDisplayName
-            // 
-            ColDisplayName.DataPropertyName = "DisplayName";
-            ColDisplayName.HeaderText = "Display Name";
-            ColDisplayName.Name = "ColDisplayName";
-            ColDisplayName.ReadOnly = true;
-            // 
             // ColServiceName
             // 
             ColServiceName.DataPropertyName = "ServiceName";
             ColServiceName.FillWeight = 80F;
-            ColServiceName.HeaderText = "Service Name";
+            ColServiceName.HeaderText = "Name";
             ColServiceName.Name = "ColServiceName";
             ColServiceName.ReadOnly = true;
             // 
-            // ColStatus
+            // ColServiceStartName
             // 
-            ColStatus.DataPropertyName = "Status";
-            ColStatus.FillWeight = 50F;
-            ColStatus.HeaderText = "Status";
-            ColStatus.Name = "ColStatus";
-            ColStatus.ReadOnly = true;
+            ColServiceStartName.DataPropertyName = "ServiceStartName";
+            ColServiceStartName.FillWeight = 80F;
+            ColServiceStartName.HeaderText = "Start Name";
+            ColServiceStartName.Name = "ColServiceStartName";
+            ColServiceStartName.ReadOnly = true;
             // 
-            // ColStartMode
+            // ColDisplayName
             // 
-            ColStartMode.DataPropertyName = "StartMode";
-            ColStartMode.FillWeight = 50F;
-            ColStartMode.HeaderText = "Start Mode";
-            ColStartMode.Name = "ColStartMode";
-            ColStartMode.ReadOnly = true;
+            ColDisplayName.DataPropertyName = "DisplayName";
+            ColDisplayName.FillWeight = 80F;
+            ColDisplayName.HeaderText = "Display Name";
+            ColDisplayName.Name = "ColDisplayName";
+            ColDisplayName.ReadOnly = true;
+            // 
+            // ColDescription
+            // 
+            ColDescription.DataPropertyName = "Description";
+            ColDescription.FillWeight = 200F;
+            ColDescription.HeaderText = "Description";
+            ColDescription.Name = "ColDescription";
+            ColDescription.ReadOnly = true;
             // 
             // ColServiceType
             // 
             ColServiceType.DataPropertyName = "ServiceType";
-            ColServiceType.HeaderText = "Service Type";
+            ColServiceType.FillWeight = 50F;
+            ColServiceType.HeaderText = "Type";
             ColServiceType.Name = "ColServiceType";
             ColServiceType.ReadOnly = true;
+            // 
+            // ColStartType
+            // 
+            ColStartType.DataPropertyName = "StartType";
+            ColStartType.FillWeight = 30F;
+            ColStartType.HeaderText = "Start Type";
+            ColStartType.Name = "ColStartType";
+            ColStartType.ReadOnly = true;
+            // 
+            // ColErrorControl
+            // 
+            ColErrorControl.DataPropertyName = "ErrorControl";
+            ColErrorControl.FillWeight = 50F;
+            ColErrorControl.HeaderText = "Error Control";
+            ColErrorControl.Name = "ColErrorControl";
+            ColErrorControl.ReadOnly = true;
+            // 
+            // ColBinaryPathName
+            // 
+            ColBinaryPathName.DataPropertyName = "BinaryPathName";
+            ColBinaryPathName.FillWeight = 150F;
+            ColBinaryPathName.HeaderText = "Path";
+            ColBinaryPathName.Name = "ColBinaryPathName";
+            ColBinaryPathName.ReadOnly = true;
+            // 
+            // ColLoadOrderGroup
+            // 
+            ColLoadOrderGroup.DataPropertyName = "LoadOrderGroup";
+            ColLoadOrderGroup.FillWeight = 20F;
+            ColLoadOrderGroup.HeaderText = "Load Order Group";
+            ColLoadOrderGroup.Name = "ColLoadOrderGroup";
+            ColLoadOrderGroup.ReadOnly = true;
+            // 
+            // ColTagId
+            // 
+            ColTagId.DataPropertyName = "TagId";
+            ColTagId.FillWeight = 20F;
+            ColTagId.HeaderText = "Tag Id";
+            ColTagId.Name = "ColTagId";
+            ColTagId.ReadOnly = true;
+            // 
+            // ColIsDelayedAutoStart
+            // 
+            ColIsDelayedAutoStart.DataPropertyName = "IsDelayedAutoStart";
+            ColIsDelayedAutoStart.FillWeight = 20F;
+            ColIsDelayedAutoStart.HeaderText = "Is Delayed";
+            ColIsDelayedAutoStart.Name = "ColIsDelayedAutoStart";
+            ColIsDelayedAutoStart.ReadOnly = true;
+            // 
+            // ColCurrentState
+            // 
+            ColCurrentState.DataPropertyName = "CurrentState";
+            ColCurrentState.FillWeight = 30F;
+            ColCurrentState.HeaderText = "State";
+            ColCurrentState.Name = "ColCurrentState";
+            ColCurrentState.ReadOnly = true;
+            // 
+            // ColProcessId
+            // 
+            ColProcessId.DataPropertyName = "ProcessId";
+            ColProcessId.FillWeight = 20F;
+            ColProcessId.HeaderText = "Process Id";
+            ColProcessId.Name = "ColProcessId";
+            ColProcessId.ReadOnly = true;
+            // 
+            // ColWin32ExitCode
+            // 
+            ColWin32ExitCode.DataPropertyName = "Win32ExitCode";
+            ColWin32ExitCode.FillWeight = 20F;
+            ColWin32ExitCode.HeaderText = "Exit Code";
+            ColWin32ExitCode.Name = "ColWin32ExitCode";
+            ColWin32ExitCode.ReadOnly = true;
+            // 
+            // ColServiceSpecificExitCode
+            // 
+            ColServiceSpecificExitCode.DataPropertyName = "ServiceSpecificExitCode";
+            ColServiceSpecificExitCode.FillWeight = 20F;
+            ColServiceSpecificExitCode.HeaderText = "Specific Exit Code";
+            ColServiceSpecificExitCode.Name = "ColServiceSpecificExitCode";
+            ColServiceSpecificExitCode.ReadOnly = true;
+            // 
+            // ColCanStop
+            // 
+            ColCanStop.DataPropertyName = "CanStop";
+            ColCanStop.FillWeight = 20F;
+            ColCanStop.HeaderText = "Can Stop";
+            ColCanStop.Name = "ColCanStop";
+            ColCanStop.ReadOnly = true;
             // 
             // ColCanPauseAndContinue
             // 
             ColCanPauseAndContinue.DataPropertyName = "CanPauseAndContinue";
-            ColCanPauseAndContinue.FillWeight = 40F;
-            ColCanPauseAndContinue.HeaderText = "Can Pause\n& Continue";
+            ColCanPauseAndContinue.FillWeight = 20F;
+            ColCanPauseAndContinue.HeaderText = "Can Pause & Continue";
             ColCanPauseAndContinue.Name = "ColCanPauseAndContinue";
             ColCanPauseAndContinue.ReadOnly = true;
             // 
             // ColCanShutdown
             // 
             ColCanShutdown.DataPropertyName = "CanShutdown";
-            ColCanShutdown.FillWeight = 40F;
-            ColCanShutdown.HeaderText = "Can\nShutdown";
+            ColCanShutdown.FillWeight = 20F;
+            ColCanShutdown.HeaderText = "Can Shutdown";
             ColCanShutdown.Name = "ColCanShutdown";
             ColCanShutdown.ReadOnly = true;
             // 
-            // ColCanStop
-            // 
-            ColCanStop.DataPropertyName = "CanStop";
-            ColCanStop.FillWeight = 40F;
-            ColCanStop.HeaderText = "Can\nStop";
-            ColCanStop.Name = "ColCanStop";
-            ColCanStop.ReadOnly = true;
-            // 
-            // ColPath
-            // 
-            ColPath.DataPropertyName = "Path";
-            ColPath.FillWeight = 150F;
-            ColPath.HeaderText = "Path";
-            ColPath.Name = "ColPath";
-            ColPath.ReadOnly = true;
-            // 
             // serviceBindingSource
             // 
-            serviceBindingSource.DataSource = typeof(Models.Service);
+            serviceBindingSource.DataSource = typeof(Services.ServiceConfiguration);
             // 
             // TextLog
             // 
@@ -437,7 +524,7 @@
             // 
             // StatusBar
             // 
-            StatusBar.Items.AddRange(new ToolStripItem[] { LblStatusServices, LblStatusSeparator, LblStatusServicesRunning });
+            StatusBar.Items.AddRange(new ToolStripItem[] { LblStatusServices, LblStatusSeparator, LblStatusServicesRunning, LblProgresso, ProgressBar });
             StatusBar.Location = new Point(0, 104);
             StatusBar.Name = "StatusBar";
             StatusBar.Size = new Size(1252, 22);
@@ -466,6 +553,22 @@
             LblStatusServicesRunning.Size = new Size(126, 17);
             LblStatusServicesRunning.Text = "{0} services running";
             // 
+            // LblProgresso
+            // 
+            LblProgresso.Name = "LblProgresso";
+            LblProgresso.Size = new Size(473, 17);
+            LblProgresso.Spring = true;
+            // 
+            // ProgressBar
+            // 
+            ProgressBar.Name = "ProgressBar";
+            ProgressBar.Size = new Size(500, 16);
+            // 
+            // dependenciesBindingSource
+            // 
+            dependenciesBindingSource.DataMember = "Dependencies";
+            dependenciesBindingSource.DataSource = serviceBindingSource;
+            // 
             // FormMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -491,6 +594,7 @@
             SplitMain.ResumeLayout(false);
             StatusBar.ResumeLayout(false);
             StatusBar.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)dependenciesBindingSource).EndInit();
             ResumeLayout(false);
         }
 
@@ -513,20 +617,32 @@
         private SplitContainer SplitMain;
         private Label LblFilterStatus;
         private Label LblStartMode;
-        private DataGridViewTextBoxColumn ColDisplayName;
-        private DataGridViewTextBoxColumn ColServiceName;
-        private DataGridViewTextBoxColumn ColStatus;
-        private DataGridViewTextBoxColumn ColStartMode;
-        private DataGridViewTextBoxColumn ColServiceType;
-        private DataGridViewCheckBoxColumn ColCanPauseAndContinue;
-        private DataGridViewCheckBoxColumn ColCanShutdown;
-        private DataGridViewCheckBoxColumn ColCanStop;
-        private DataGridViewTextBoxColumn ColPath;
         private Button BtnCancel;
         private CheckBox ChkStartAsAdm;
         private StatusStrip StatusBar;
         private ToolStripStatusLabel LblStatusServices;
         private ToolStripStatusLabel LblStatusServicesRunning;
         private ToolStripStatusLabel LblStatusSeparator;
+        private BindingSource dependenciesBindingSource;
+        private DataGridViewTextBoxColumn ColServiceName;
+        private DataGridViewTextBoxColumn ColServiceStartName;
+        private DataGridViewTextBoxColumn ColDisplayName;
+        private DataGridViewTextBoxColumn ColDescription;
+        private DataGridViewTextBoxColumn ColServiceType;
+        private DataGridViewTextBoxColumn ColStartType;
+        private DataGridViewTextBoxColumn ColErrorControl;
+        private DataGridViewTextBoxColumn ColBinaryPathName;
+        private DataGridViewTextBoxColumn ColLoadOrderGroup;
+        private DataGridViewTextBoxColumn ColTagId;
+        private DataGridViewCheckBoxColumn ColIsDelayedAutoStart;
+        private DataGridViewTextBoxColumn ColCurrentState;
+        private DataGridViewTextBoxColumn ColProcessId;
+        private DataGridViewTextBoxColumn ColWin32ExitCode;
+        private DataGridViewTextBoxColumn ColServiceSpecificExitCode;
+        private DataGridViewCheckBoxColumn ColCanStop;
+        private DataGridViewCheckBoxColumn ColCanPauseAndContinue;
+        private DataGridViewCheckBoxColumn ColCanShutdown;
+        private ToolStripStatusLabel LblProgresso;
+        private ToolStripProgressBar ProgressBar;
     }
 }

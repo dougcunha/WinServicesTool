@@ -12,6 +12,18 @@ public sealed partial class AppConfig : INotifyPropertyChanged
     public List<string> VisibleColumns { get; set; } = [];
 
     /// <summary>
+    /// Gets or sets the ordered list of column names representing their display order in the grid.
+    /// Column names are stored in the order they should appear from left to right.
+    /// </summary>
+    public List<string> ColumnOrder { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets a dictionary mapping column names to their custom FillWeight values.
+    /// Only columns with user-modified widths are stored. Empty dictionary means all columns use default weights.
+    /// </summary>
+    public Dictionary<string, float> ColumnFillWeights { get; set; } = [];
+
+    /// <summary>
     /// Gets a value indicating whether the Path column is currently visible in the view.
     /// </summary>
     [JsonIgnore]

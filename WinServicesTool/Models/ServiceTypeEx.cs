@@ -17,16 +17,11 @@ public enum ServiceTypeEx
 
 public static class ServiceTypeHelper
 {
-    public static string Describe(int rawType)
+    public static string Describe(this ServiceTypeEx rawType)
     {
-        var type = (ServiceTypeEx)rawType;
-        var parts = new List<string>();
-
-        foreach (ServiceTypeEx flag in Enum.GetValues(typeof(ServiceTypeEx)))
-        {
-            if (type.HasFlag(flag))
-                parts.Add(flag.ToString());
-        }
+        var parts = (from flag in Enum.GetValues<ServiceTypeEx>()
+            where rawType.HasFlag(flag)
+            select flag.ToString()).ToList();
 
         return parts.Count > 0
             ? string.Join(" + ", parts)
