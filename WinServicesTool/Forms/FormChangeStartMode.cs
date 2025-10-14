@@ -64,14 +64,14 @@ public sealed class FormChangeStartMode : Form
             DialogResult = DialogResult.Cancel
         };
 
-        btnOk.Click += (s, e) =>
+        btnOk.Click += (_, _) =>
         {
             SelectedMode = _cmb?.SelectedItem?.ToString() ?? "Manual";
             DialogResult = DialogResult.OK;
             Close();
         };
 
-        btnCancel.Click += (s, e) =>
+        btnCancel.Click += (_, _) =>
         {
             DialogResult = DialogResult.Cancel;
             Close();

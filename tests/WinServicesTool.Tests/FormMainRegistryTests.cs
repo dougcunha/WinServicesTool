@@ -19,11 +19,12 @@ public sealed class FormMainRegistryTests
         var orchestrator = Substitute.For<IServiceOperationOrchestrator>();
         var registry = Substitute.For<IRegistryService>();
         var registryEditor = Substitute.For<IRegistryEditor>();
+        var formEditServiceFactory = Substitute.For<Func<string, string, string, FormEditService>>();
 
         var cfg = new AppConfig();
 
         // Create FormMain with mocked dependencies
-        var form = new FormMain(logger, serviceHelper, priv, orchestrator, registry, registryEditor, cfg);
+        var form = new FormMain(logger, serviceHelper, priv, orchestrator, registry, registryEditor, formEditServiceFactory, cfg);
 
         var serviceName = "TestServiceName";
         var expectedPath = $"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\{serviceName}";

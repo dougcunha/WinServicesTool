@@ -33,6 +33,7 @@ public sealed partial class FormMain : Form
     private readonly IServiceOperationOrchestrator _orchestrator;
     private readonly IRegistryService _registryService;
     private readonly IRegistryEditor _registryEditor;
+    private readonly Func<string, string, string, FormEditService> _formEditServiceFactory;
     private CancellationTokenSource? _currentOperationCts;
     private readonly bool _shouldSaveOnClose;
     private readonly bool _isRunningAsAdmin;
@@ -52,6 +53,7 @@ public sealed partial class FormMain : Form
         IServiceOperationOrchestrator orchestrator,
         IRegistryService registryService,
         IRegistryEditor registryEditor,
+        Func<string, string, string, FormEditService> formEditServiceFactory,
         AppConfig appConfig
     )
     {
@@ -70,6 +72,7 @@ public sealed partial class FormMain : Form
         _orchestrator = orchestrator;
         _registryService = registryService;
         _registryEditor = registryEditor;
+        _formEditServiceFactory = formEditServiceFactory;
 
         // Ensure Cancel button starts disabled
         BtnCancel.Enabled = false;
@@ -353,6 +356,17 @@ public sealed partial class FormMain : Form
             changeStart.Enabled = _isRunningAsAdmin;
             menu.Items.Add(changeStart);
 
+            // Edit service info (only for single selection and admin mode)
+            if (selected.Count == 1)
+            {
+                var editService = new ToolStripMenuItem("Edit Service Info...") { Enabled = _isRunningAsAdmin };
+                editService.Click += (_, _) => EditServiceInfo(selected[0]);
+                menu.Items.Add(editService);
+            }
+
+            // Separator
+            menu.Items.Add(new ToolStripSeparator());
+
             // Go to registry (only for single selection)
             if (selected.Count == 1)
             {
@@ -419,6 +433,51 @@ public sealed partial class FormMain : Form
         {
             AppendLog($"Failed to open service path: {ex.Message}", LogLevel.Error);
             _logger.LogError(ex, "Failed to open service path for {ServiceName}", selected[0].ServiceName);
+        }
+    }
+
+    /// <summary>
+    /// Opens the Edit Service Info dialog for the specified service.
+    /// </summary>
+    /// <param name="service">The service to edit.</param>
+    private void EditServiceInfo(ServiceConfiguration service)
+    {
+        if (!_isRunningAsAdmin)
+        {
+            MessageBox.Show(
+                "You must run this application as administrator to edit service information.",
+                "Administrator Required",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning
+            );
+
+            return;
+        }
+
+        try
+        {
+            var editForm = _formEditServiceFactory(
+                service.ServiceName,
+                service.DisplayName ?? string.Empty,
+                service.Description ?? string.Empty
+            );
+
+            if (editForm.ShowDialog(this) == DialogResult.OK)
+            {
+                // Update the service configuration in memory
+                service.DisplayName = editForm.DisplayName;
+                service.Description = editForm.Description;
+
+                // Refresh the grid to show updated values
+                GridServs.Refresh();
+
+                AppendLog($"Service information updated for {service.ServiceName}", LogLevel.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"Failed to edit service info: {ex.Message}", LogLevel.Error);
+            _logger.LogError(ex, "Failed to edit service info for {ServiceName}", service.ServiceName);
         }
     }
 
@@ -827,7 +886,7 @@ public sealed partial class FormMain : Form
             switch (level)
             {
                 case LogLevel.Error:
-                    #pragma warning disable CA2254
+#pragma warning disable CA2254
                     _logger.LogError(message);
 
                     break;
@@ -839,7 +898,7 @@ public sealed partial class FormMain : Form
                     _logger.LogInformation(message);
 
                     break;
-                    #pragma warning restore CA2254
+#pragma warning restore CA2254
             }
 
             // Append to TextLog on UI thread and auto-scroll to bottom
