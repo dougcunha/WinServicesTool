@@ -47,6 +47,7 @@
             TxtFilter = new TextBox();
             LblFilterStatus = new Label();
             LblStartMode = new Label();
+            BtnColumns = new Button();
             GridServs = new DataGridView();
             ColServiceName = new DataGridViewTextBoxColumn();
             ColServiceStartName = new DataGridViewTextBoxColumn();
@@ -68,6 +69,8 @@
             ColCanShutdown = new DataGridViewCheckBoxColumn();
             serviceBindingSource = new BindingSource(components);
             TextLog = new RichTextBox();
+            MnuLog = new ContextMenuStrip(components);
+            clearLogToolStripMenuItem = new ToolStripMenuItem();
             SplitMain = new SplitContainer();
             StatusBar = new StatusStrip();
             LblStatusServices = new ToolStripStatusLabel();
@@ -80,6 +83,7 @@
             tableLayoutPanelFilter.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)GridServs).BeginInit();
             ((System.ComponentModel.ISupportInitialize)serviceBindingSource).BeginInit();
+            MnuLog.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)SplitMain).BeginInit();
             SplitMain.Panel1.SuspendLayout();
             SplitMain.Panel2.SuspendLayout();
@@ -111,10 +115,10 @@
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 129F));
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 113F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 122F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
             tableLayoutPanel3.Controls.Add(BtnRestartAsAdm, 7, 0);
             tableLayoutPanel3.Controls.Add(ChkStartAsAdm, 8, 0);
@@ -139,9 +143,9 @@
             BtnRestartAsAdm.Font = new Font("Segoe UI", 9F);
             BtnRestartAsAdm.ImageKey = "shield-user.png";
             BtnRestartAsAdm.ImageList = Imgs;
-            BtnRestartAsAdm.Location = new Point(1019, 3);
+            BtnRestartAsAdm.Location = new Point(1007, 3);
             BtnRestartAsAdm.Name = "BtnRestartAsAdm";
-            BtnRestartAsAdm.Size = new Size(104, 38);
+            BtnRestartAsAdm.Size = new Size(116, 38);
             BtnRestartAsAdm.TabIndex = 9;
             BtnRestartAsAdm.Text = "Restart as Adm";
             BtnRestartAsAdm.TextImageRelation = TextImageRelation.TextBeforeImage;
@@ -160,6 +164,7 @@
             Imgs.Images.SetKeyName(5, "trending-up.png");
             Imgs.Images.SetKeyName(6, "ban.png");
             Imgs.Images.SetKeyName(7, "shield-user.png");
+            Imgs.Images.SetKeyName(8, "columns-3-cog (1).png");
             // 
             // ChkStartAsAdm
             // 
@@ -235,7 +240,7 @@
             BtnChangeStartMode.ImageList = Imgs;
             BtnChangeStartMode.Location = new Point(443, 3);
             BtnChangeStartMode.Name = "BtnChangeStartMode";
-            BtnChangeStartMode.Size = new Size(104, 38);
+            BtnChangeStartMode.Size = new Size(123, 38);
             BtnChangeStartMode.TabIndex = 6;
             BtnChangeStartMode.Text = "Start mode (F6)";
             BtnChangeStartMode.TextImageRelation = TextImageRelation.TextBeforeImage;
@@ -248,9 +253,9 @@
             BtnCancel.Font = new Font("Segoe UI", 9F);
             BtnCancel.ImageKey = "ban.png";
             BtnCancel.ImageList = Imgs;
-            BtnCancel.Location = new Point(553, 3);
+            BtnCancel.Location = new Point(572, 3);
             BtnCancel.Name = "BtnCancel";
-            BtnCancel.Size = new Size(104, 38);
+            BtnCancel.Size = new Size(107, 38);
             BtnCancel.TabIndex = 7;
             BtnCancel.Text = "Cancel (ESC)";
             BtnCancel.TextImageRelation = TextImageRelation.TextBeforeImage;
@@ -259,17 +264,19 @@
             // 
             // tableLayoutPanelFilter
             // 
-            tableLayoutPanelFilter.ColumnCount = 5;
+            tableLayoutPanelFilter.ColumnCount = 6;
             tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70F));
             tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
             tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 50F));
             tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
             tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 30F));
             tableLayoutPanelFilter.Controls.Add(CbFilterStatus, 1, 0);
             tableLayoutPanelFilter.Controls.Add(CbFilterStartMode, 3, 0);
             tableLayoutPanelFilter.Controls.Add(TxtFilter, 4, 0);
             tableLayoutPanelFilter.Controls.Add(LblFilterStatus, 0, 0);
             tableLayoutPanelFilter.Controls.Add(LblStartMode, 2, 0);
+            tableLayoutPanelFilter.Controls.Add(BtnColumns, 5, 0);
             tableLayoutPanelFilter.Dock = DockStyle.Fill;
             tableLayoutPanelFilter.Location = new Point(3, 53);
             tableLayoutPanelFilter.Name = "tableLayoutPanelFilter";
@@ -309,7 +316,7 @@
             TxtFilter.Margin = new Padding(5, 5, 5, 3);
             TxtFilter.Name = "TxtFilter";
             TxtFilter.PlaceholderText = "Filter text... (ctrl + k)";
-            TxtFilter.Size = new Size(716, 25);
+            TxtFilter.Size = new Size(686, 25);
             TxtFilter.TabIndex = 2;
             // 
             // LblFilterStatus
@@ -335,6 +342,19 @@
             LblStartMode.TabIndex = 4;
             LblStartMode.Text = "Start mode";
             LblStartMode.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // BtnColumns
+            // 
+            BtnColumns.Dock = DockStyle.Fill;
+            BtnColumns.FlatStyle = FlatStyle.Flat;
+            BtnColumns.ImageKey = "columns-3-cog (1).png";
+            BtnColumns.ImageList = Imgs;
+            BtnColumns.Location = new Point(1219, 3);
+            BtnColumns.Name = "BtnColumns";
+            BtnColumns.Size = new Size(24, 28);
+            BtnColumns.TabIndex = 5;
+            BtnColumns.UseVisualStyleBackColor = true;
+            BtnColumns.Click += BtnColumns_Click;
             // 
             // GridServs
             // 
@@ -511,6 +531,7 @@
             // 
             TextLog.BackColor = Color.White;
             TextLog.BorderStyle = BorderStyle.None;
+            TextLog.ContextMenuStrip = MnuLog;
             TextLog.Dock = DockStyle.Fill;
             TextLog.Location = new Point(0, 0);
             TextLog.Margin = new Padding(10);
@@ -519,6 +540,19 @@
             TextLog.Size = new Size(1252, 104);
             TextLog.TabIndex = 1;
             TextLog.Text = "";
+            // 
+            // MnuLog
+            // 
+            MnuLog.Items.AddRange(new ToolStripItem[] { clearLogToolStripMenuItem });
+            MnuLog.Name = "MnuLog";
+            MnuLog.Size = new Size(122, 26);
+            // 
+            // clearLogToolStripMenuItem
+            // 
+            clearLogToolStripMenuItem.Name = "clearLogToolStripMenuItem";
+            clearLogToolStripMenuItem.Size = new Size(121, 22);
+            clearLogToolStripMenuItem.Text = "Clear log";
+            clearLogToolStripMenuItem.Click += clearLogToolStripMenuItem_Click;
             // 
             // SplitMain
             // 
@@ -599,6 +633,7 @@
             tableLayoutPanelFilter.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)GridServs).EndInit();
             ((System.ComponentModel.ISupportInitialize)serviceBindingSource).EndInit();
+            MnuLog.ResumeLayout(false);
             SplitMain.Panel1.ResumeLayout(false);
             SplitMain.Panel2.ResumeLayout(false);
             SplitMain.Panel2.PerformLayout();
@@ -655,5 +690,8 @@
         private ToolStripStatusLabel LblProgresso;
         private ToolStripProgressBar ProgressBar;
         private Button BtnRestartAsAdm;
+        private Button BtnColumns;
+        private ContextMenuStrip MnuLog;
+        private ToolStripMenuItem clearLogToolStripMenuItem;
     }
 }

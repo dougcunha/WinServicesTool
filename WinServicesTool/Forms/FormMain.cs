@@ -765,7 +765,7 @@ public sealed partial class FormMain : Form
             switch (level)
             {
                 case LogLevel.Error:
-                    #pragma warning disable CA2254
+#pragma warning disable CA2254
                     _logger.LogError(message);
                     break;
                 case LogLevel.Warning:
@@ -773,7 +773,7 @@ public sealed partial class FormMain : Form
                     break;
                 default:
                     _logger.LogInformation(message);
-                    #pragma warning restore CA2254
+#pragma warning restore CA2254
                     break;
             }
 
@@ -1402,4 +1402,10 @@ public sealed partial class FormMain : Form
                 break;
         }
     }
+
+    private async void BtnColumns_Click(object sender, EventArgs e)
+        => await ShowColumnChooserDialogAsync();
+
+    private void clearLogToolStripMenuItem_Click(object sender, EventArgs e)
+        => TextLog.Clear();
 }
