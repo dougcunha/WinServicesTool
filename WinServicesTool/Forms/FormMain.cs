@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.ServiceProcess;
+using AsyncAwaitBestPractices;
 using Microsoft.Extensions.Logging;
 using WinServicesTool.Extensions;
 using WinServicesTool.Services;
@@ -7,9 +8,16 @@ using WinServicesTool.Utils;
 
 namespace WinServicesTool.Forms;
 
+using System.Diagnostics;
+using System.Text.RegularExpressions;
+
 // ReSharper disable AsyncVoidEventHandlerMethod
 public sealed partial class FormMain : Form
 {
+    // ReSharper disable once UseRawString
+    [GeneratedRegex(@"^""?([^""]+?\.exe)(?=""|$|\s)", RegexOptions.IgnoreCase)]
+    private static partial Regex RegexExtractPath();
+
     // App configuration
     private readonly AppConfig _appConfig;
 
@@ -65,23 +73,9 @@ public sealed partial class FormMain : Form
 
         // Ensure Cancel button starts disabled
         BtnCancel.Enabled = false;
-        _appConfig.PropertyChanged += AppConfigChanged;
-        FormClosing += FormPrincipal_FormClosing;
-        GridServs.ColumnHeaderMouseClick += GridServs_ColumnHeaderMouseClick;
-        GridServs.CellFormatting += GridServs_CellFormatting;
-        GridServs.CellPainting += GridServs_CellPainting;
-        GridServs.MouseUp += GridServs_MouseUp;
-        GridServs.SelectionChanged += GridServs_SelectionChanged;
-        GridServs.ColumnWidthChanged += GridServs_ColumnWidthChanged;
-        GridServs.ColumnDisplayIndexChanged += GridServs_ColumnDisplayIndexChanged;
-        TxtFilter.TextChanged += TxtFilter_TextChanged;
-        CbFilterStatus.SelectedIndexChanged += (_, _) => ApplyFilterAndSort();
-        CbFilterStartMode.SelectedIndexChanged += (_, _) => ApplyFilterAndSort();
-        Load += FormPrincipal_Load;
-        Shown += FormPrincipal_Shown;
+        InitializeEventBindings();
         BtnChangeStartMode.Enabled = _isRunningAsAdmin;
         BtnRestartAsAdm.Visible = !_isRunningAsAdmin;
-        BtnRestartAsAdm.Click += BtnRestartAsAdm_Click;
 
         ChkStartAsAdm.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.AlwaysStartsAsAdministrator), false, DataSourceUpdateMode.OnPropertyChanged);
 
@@ -105,8 +99,26 @@ public sealed partial class FormMain : Form
 
         // Initialize columns before loading services
         InitializeColumns();
+        RefreshServiceListAsync().SafeFireAndForget(x => _logger.LogError(x, "Failed to load services"));
+    }
 
-        BtnLoad_Click(null, EventArgs.Empty);
+    private void InitializeEventBindings()
+    {
+        _appConfig.PropertyChanged += AppConfigChanged;
+        FormClosing += FormPrincipal_FormClosing;
+        GridServs.ColumnHeaderMouseClick += GridServs_ColumnHeaderMouseClick;
+        GridServs.CellFormatting += GridServs_CellFormatting;
+        GridServs.CellPainting += GridServs_CellPainting;
+        GridServs.MouseUp += GridServs_MouseUp;
+        GridServs.SelectionChanged += GridServs_SelectionChanged;
+        GridServs.ColumnWidthChanged += GridServs_ColumnWidthChanged;
+        GridServs.ColumnDisplayIndexChanged += GridServs_ColumnDisplayIndexChanged;
+        TxtFilter.TextChanged += TxtFilter_TextChanged;
+        CbFilterStatus.SelectedIndexChanged += (_, _) => ApplyFilterAndSort();
+        CbFilterStartMode.SelectedIndexChanged += (_, _) => ApplyFilterAndSort();
+        Load += FormPrincipal_Load;
+        Shown += FormPrincipal_Shown;
+        BtnRestartAsAdm.Click += BtnRestartAsAdm_Click;
     }
 
     private void BtnRestartAsAdm_Click(object? sender, EventArgs e)
@@ -347,6 +359,12 @@ public sealed partial class FormMain : Form
                 var goToRegistry = new ToolStripMenuItem("Go to Registry") { Enabled = true };
                 goToRegistry.Click += (_, _) => OpenServiceInRegistry(selected[0].ServiceName);
                 menu.Items.Add(goToRegistry);
+
+                var openInExplorer = new ToolStripMenuItem("Open Service Path in Explorer") { Enabled = true };
+                openInExplorer.Click += OpenSelectedServicePathOnExplorer;
+
+                if (File.Exists(ExtractExePath(selected[0].BinaryPathName)))
+                    menu.Items.Add(openInExplorer);
             }
 
             // Show menu at cursor
@@ -355,6 +373,52 @@ public sealed partial class FormMain : Form
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error showing context menu");
+        }
+    }
+
+    /// <summary>
+    /// Retorna o caminho do executável principal de uma string de comando de serviço.
+    /// </summary>
+    /// <param name="serviceCommand">Linha de comando completa.</param>
+    /// <returns>Caminho do executável principal.</returns>
+    private static string? ExtractExePath(string serviceCommand)
+    {
+        if (string.IsNullOrWhiteSpace(serviceCommand))
+            return null;
+
+        var match = RegexExtractPath().Match(serviceCommand);
+
+        return match.Success ? match.Groups[1].Value : null;
+    }
+
+    private void OpenSelectedServicePathOnExplorer(object? sender, EventArgs e)
+    {
+        var selected = GetSelectedServices().ToList();
+
+        if (selected.Count != 1)
+            return;
+
+        try
+        {
+            // Extract the first path from BinaryPathName (it may contain arguments)
+            var path = ExtractExePath(selected[0].BinaryPathName);
+
+            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            {
+                AppendLog($"Service executable path not found for {selected[0].ServiceName}", LogLevel.Warning);
+
+                return;
+            }
+
+            _logger.LogInformation("Opening Explorer at {Path}", path);
+
+            // Open Explorer and select the file
+            Process.Start("explorer.exe", $"/select,\"{path}\"");
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"Failed to open service path: {ex.Message}", LogLevel.Error);
+            _logger.LogError(ex, "Failed to open service path for {ServiceName}", selected[0].ServiceName);
         }
     }
 
@@ -401,12 +465,14 @@ public sealed partial class FormMain : Form
                 // cycle: None -> Asc -> Desc -> None
                 SortOrder.None => SortOrder.Ascending,
                 SortOrder.Ascending => SortOrder.Descending,
-                var _ => SortOrder.None
+                var _ => SortOrder.None,
             };
 
             if (_sortOrder == SortOrder.None)
+            {
                 // clear property when cycling back to no-sort
                 _sortPropertyName = null;
+            }
         }
         else
         {
@@ -544,7 +610,6 @@ public sealed partial class FormMain : Form
             _logger.LogError(ex, "Error updating column header height");
         }
     }
-
 
     /// <summary>
     /// Saves the current display order of columns to the configuration.
@@ -698,19 +763,16 @@ public sealed partial class FormMain : Form
 
             try
             {
-                foreach (var kvp in _appConfig.ColumnFillWeights)
+                foreach (var (columnName, fillWeight) in _appConfig.ColumnFillWeights)
                 {
-                    var columnName = kvp.Key;
-                    var fillWeight = kvp.Value;
-
                     var column = GridServs.Columns.Cast<DataGridViewColumn>()
                         .FirstOrDefault(col => col.Name == columnName);
 
-                    if (column != null)
-                    {
-                        column.FillWeight = fillWeight;
-                        _logger.LogTrace("Restored FillWeight {FillWeight} for column {ColumnName}", fillWeight, columnName);
-                    }
+                    if (column == null)
+                        continue;
+
+                    column.FillWeight = fillWeight;
+                    _logger.LogTrace("Restored FillWeight {FillWeight} for column {ColumnName}", fillWeight, columnName);
                 }
 
                 _logger.LogDebug("Restored {Count} column widths from config", _appConfig.ColumnFillWeights.Count);
@@ -765,22 +827,26 @@ public sealed partial class FormMain : Form
             switch (level)
             {
                 case LogLevel.Error:
-#pragma warning disable CA2254
+                    #pragma warning disable CA2254
                     _logger.LogError(message);
+
                     break;
                 case LogLevel.Warning:
                     _logger.LogWarning(message);
+
                     break;
                 default:
                     _logger.LogInformation(message);
-#pragma warning restore CA2254
+
                     break;
+                    #pragma warning restore CA2254
             }
 
             // Append to TextLog on UI thread and auto-scroll to bottom
             void AppendAndScroll()
             {
                 TextLog.AppendText(line);
+
                 // move caret to end and scroll
                 TextLog.SelectionStart = TextLog.TextLength;
                 TextLog.SelectionLength = 0;
@@ -859,7 +925,10 @@ public sealed partial class FormMain : Form
         }
     }
 
-    private async void BtnLoad_Click(object? sender, EventArgs e)
+    private void BtnLoad_Click(object? sender, EventArgs e)
+        => RefreshServiceListAsync().SafeFireAndForget(x => _logger.LogError(x, "Failed to load services"));
+
+    private async Task RefreshServiceListAsync()
     {
         BtnLoad.Enabled = false;
         var previousCursor = Cursor.Current;
@@ -916,10 +985,10 @@ public sealed partial class FormMain : Form
         _filterCts?.Cancel();
         _filterCts = new CancellationTokenSource();
         var ct = _filterCts.Token;
-        _ = ApplyFilterWithDelay(ct);
+        ApplyFilterWithDelayAsync(ct).SafeFireAndForget(x => _logger.LogError(x, "Error applying filter"));
     }
 
-    private async Task ApplyFilterWithDelay(CancellationToken ct)
+    private async Task ApplyFilterWithDelayAsync(CancellationToken ct)
     {
         try
         {
@@ -993,6 +1062,7 @@ public sealed partial class FormMain : Form
         foreach (DataGridViewColumn c in GridServs.Columns)
         {
             c.HeaderCell.SortGlyphDirection = SortOrder.None;
+
             // Reset header font
             c.HeaderCell.Style.Font = new Font(GridServs.Font, FontStyle.Regular);
         }
@@ -1029,9 +1099,11 @@ public sealed partial class FormMain : Form
             return;
 
         GridServs.InvalidateColumn(idx);
+
         // additional aggressive repaints
         GridServs.Invalidate();
         GridServs.Update();
+
         // clear any selection that might leave header visually selected
         GridServs.ClearSelection();
     }
@@ -1075,6 +1147,7 @@ public sealed partial class FormMain : Form
             var results = new List<string>();
 
             foreach (var serv in selecteds)
+            {
                 try
                 {
                     var subKey = $"SYSTEM\\CurrentControlSet\\Services\\{serv.ServiceName}";
@@ -1100,6 +1173,7 @@ public sealed partial class FormMain : Form
                     AppendLog(err, LogLevel.Error);
                     results.Add(err);
                 }
+            }
 
             // Refresh list on UI thread and show summary
             this.InvokeIfRequired(() =>
@@ -1365,8 +1439,8 @@ public sealed partial class FormMain : Form
             case { Control: true, KeyCode: Keys.K }:
                 TxtFilter.Focus();
                 e.Handled = true;
-                break;
 
+                break;
             case { KeyCode: Keys.Escape }:
                 if (TxtFilter.Focused)
                     TxtFilter.Clear();
@@ -1374,31 +1448,32 @@ public sealed partial class FormMain : Form
                     BtnCancel_Click(sender, e);
 
                 e.Handled = true;
-                break;
 
+                break;
             case { KeyCode: Keys.F5 }:
-                BtnLoad_Click(sender, e);
+                RefreshServiceListAsync().SafeFireAndForget(x => _logger.LogError(x, "Failed to load services"));
                 e.Handled = true;
-                break;
 
+                break;
             case { KeyCode: Keys.F9 }:
                 BtnStart_Click(sender, e);
                 e.Handled = true;
-                break;
 
+                break;
             case { KeyCode: Keys.F7 }:
                 BtnRestart_Click(sender, e);
                 e.Handled = true;
-                break;
 
+                break;
             case { KeyCode: Keys.F2 }:
                 BtnStop_Click(sender, e);
                 e.Handled = true;
-                break;
 
+                break;
             case { KeyCode: Keys.F6 }:
                 BtnChangeStartMode_Click(sender, e);
                 e.Handled = true;
+
                 break;
         }
     }
