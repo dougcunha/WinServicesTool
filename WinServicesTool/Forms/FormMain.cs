@@ -26,7 +26,9 @@ public sealed partial class FormMain : Form
     private readonly IRegistryService _registryService;
     private readonly IRegistryEditor _registryEditor;
     private CancellationTokenSource? _currentOperationCts;
-    private bool _shouldSaveOnClose;
+    private readonly bool _shouldSaveOnClose;
+    private readonly bool _isRunningAsAdmin;
+    private readonly bool _restartingAsAdmin;
 
     // Store original FillWeight values to detect user modifications
     private readonly Dictionary<string, float> _originalFillWeights = [];
@@ -49,7 +51,7 @@ public sealed partial class FormMain : Form
 
         // Show the app name and version in the title bar
         Text = $"Windows Services Tool v{Application.ProductVersion}";
-
+        _isRunningAsAdmin = privilegeService.IsAdministrator();
         ProgressBar.Visible = false;
         LblStatusServices.Text = "Loading...";
         LblStatusServicesRunning.Text = "Loading...";
@@ -77,6 +79,9 @@ public sealed partial class FormMain : Form
         CbFilterStartMode.SelectedIndexChanged += (_, _) => ApplyFilterAndSort();
         Load += FormPrincipal_Load;
         Shown += FormPrincipal_Shown;
+        BtnChangeStartMode.Enabled = _isRunningAsAdmin;
+        BtnRestartAsAdm.Visible = !_isRunningAsAdmin;
+        BtnRestartAsAdm.Click += BtnRestartAsAdm_Click;
 
         ChkStartAsAdm.DataBindings.Add("Checked", _appConfig, nameof(AppConfig.AlwaysStartsAsAdministrator), false, DataSourceUpdateMode.OnPropertyChanged);
 
@@ -88,22 +93,24 @@ public sealed partial class FormMain : Form
         hdrStyle.Alignment = DataGridViewContentAlignment.MiddleCenter; // Center align headers vertically
         GridServs.ColumnHeadersDefaultCellStyle = hdrStyle;
 
-        // On startup, if we are not running elevated, ask the user to restart as admin
-        if (_privilegeService.IsAdministrator())
+        if (!_isRunningAsAdmin && _appConfig.AlwaysStartsAsAdministrator)
         {
-            _shouldSaveOnClose = true;
-
-            // Initialize columns before loading services
-            InitializeColumns();
-
-            BtnLoad_Click(null, EventArgs.Empty);
+            _restartingAsAdmin = true;
+            _privilegeService.AskAndRestartAsAdmin(this, shouldAsk: false);
 
             return;
         }
 
-        AppendLog("Application not running as administrator. Prompting for elevation...");
-        _privilegeService.AskAndRestartAsAdmin(this, _appConfig.AlwaysStartsAsAdministrator);
+        _shouldSaveOnClose = true;
+
+        // Initialize columns before loading services
+        InitializeColumns();
+
+        BtnLoad_Click(null, EventArgs.Empty);
     }
+
+    private void BtnRestartAsAdm_Click(object? sender, EventArgs e)
+        => _privilegeService.AskAndRestartAsAdmin(this, shouldAsk: false);
 
     private void AppConfigChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -139,11 +146,10 @@ public sealed partial class FormMain : Form
 
     // Designer-based filter controls are wired in constructor
 
-    private async void FormPrincipal_Load(object? sender, EventArgs e)
+    private void FormPrincipal_Load(object? sender, EventArgs e)
     {
-        if (!_privilegeService.IsAdministrator())
+        if (_restartingAsAdmin)
         {
-            _shouldSaveOnClose = false;
             Close();
 
             return;
@@ -155,9 +161,6 @@ public sealed partial class FormMain : Form
             return;
 
         InitializeColumns();
-
-        // Wait a bit for async initialization to complete
-        await Task.Delay(100);
     }
 
     private void FormPrincipal_Shown(object? sender, EventArgs e)
@@ -252,9 +255,9 @@ public sealed partial class FormMain : Form
             }
 
             var st = statuses[0];
-            BtnStart.Enabled = st == ServiceControllerStatus.Stopped;
-            BtnStop.Enabled = st is ServiceControllerStatus.Running or ServiceControllerStatus.Paused;
-            BtnRestart.Enabled = st is ServiceControllerStatus.Running or ServiceControllerStatus.Paused;
+            BtnStart.Enabled = _isRunningAsAdmin && st == ServiceControllerStatus.Stopped;
+            BtnStop.Enabled = _isRunningAsAdmin && st is ServiceControllerStatus.Running or ServiceControllerStatus.Paused;
+            BtnRestart.Enabled = _isRunningAsAdmin && st is ServiceControllerStatus.Running or ServiceControllerStatus.Paused;
         }
         catch (Exception ex)
         {
@@ -266,11 +269,8 @@ public sealed partial class FormMain : Form
     {
         try
         {
-            if (_currentOperationCts == null)
-            {
-                AppendLog("No operation to cancel", LogLevel.Information);
+            if (_currentOperationCts is null)
                 return;
-            }
 
             AppendLog("Cancelling current operation...");
             _currentOperationCts.Cancel();
@@ -314,6 +314,7 @@ public sealed partial class FormMain : Form
             {
                 var startItem = new ToolStripMenuItem("Start") { Enabled = true };
                 startItem.Click += (_, _) => BtnStart_Click(this, EventArgs.Empty);
+                startItem.Enabled = _isRunningAsAdmin;
                 menu.Items.Add(startItem);
             }
 
@@ -322,10 +323,12 @@ public sealed partial class FormMain : Form
             {
                 var stopItem = new ToolStripMenuItem("Stop") { Enabled = true };
                 stopItem.Click += (_, _) => BtnStop_Click(this, EventArgs.Empty);
+                stopItem.Enabled = _isRunningAsAdmin;
                 menu.Items.Add(stopItem);
 
                 var restartItem = new ToolStripMenuItem("Restart") { Enabled = true };
                 restartItem.Click += (_, _) => BtnRestart_Click(this, EventArgs.Empty);
+                restartItem.Enabled = _isRunningAsAdmin;
                 menu.Items.Add(restartItem);
             }
 
@@ -335,6 +338,7 @@ public sealed partial class FormMain : Form
             // Change start mode
             var changeStart = new ToolStripMenuItem("Change Start Mode...") { Enabled = true };
             changeStart.Click += (_, _) => BtnChangeStartMode_Click(this, EventArgs.Empty);
+            changeStart.Enabled = _isRunningAsAdmin;
             menu.Items.Add(changeStart);
 
             // Go to registry (only for single selection)
@@ -1179,9 +1183,6 @@ public sealed partial class FormMain : Form
             return;
         }
 
-        if (MessageBox.Show(this, $"Start {selectedServices.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
-            return;
-
         BtnStart.Enabled = false;
         BtnCancel.Enabled = true;
         AppendLog($"Starting {selectedServices.Count} service(s)...");
@@ -1196,6 +1197,7 @@ public sealed partial class FormMain : Form
             var results = await _orchestrator.StartServicesAsync(selectedServices, _currentOperationCts.Token);
 
             foreach (var serv in selectedServices)
+            {
                 if (results.TryGetValue(serv.ServiceName, out var ok) && ok)
                 {
                     serv.CurrentState = ServiceState.Running;
@@ -1207,6 +1209,7 @@ public sealed partial class FormMain : Form
                     AppendLog($"Failed to start {serv.ServiceName}", LogLevel.Error);
                     _logger.LogError("Failed to start service {ServiceName}", serv.ServiceName);
                 }
+            }
 
             AppendLog($"Start operation completed for {selectedServices.Count} service(s).");
         }
@@ -1235,9 +1238,6 @@ public sealed partial class FormMain : Form
             return;
         }
 
-        if (MessageBox.Show(this, $"Stop {selectedServices.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
-            return;
-
         BtnStop.Enabled = false;
         BtnCancel.Enabled = true;
         AppendLog($"Stopping {selectedServices.Count} service(s)...");
@@ -1252,6 +1252,7 @@ public sealed partial class FormMain : Form
             var results = await _orchestrator.StopServicesAsync(selectedServices, _currentOperationCts.Token);
 
             foreach (var serv in selectedServices)
+            {
                 if (results.TryGetValue(serv.ServiceName, out var ok) && ok)
                 {
                     serv.CurrentState = ServiceState.Stopped;
@@ -1263,6 +1264,7 @@ public sealed partial class FormMain : Form
                     AppendLog($"Failed to stop {serv.ServiceName}", LogLevel.Error);
                     _logger.LogError("Failed to stop service {ServiceName}", serv.ServiceName);
                 }
+            }
 
             AppendLog($"Stop operation completed for {selectedServices.Count} service(s).");
         }
@@ -1290,9 +1292,6 @@ public sealed partial class FormMain : Form
             return;
         }
 
-        if (MessageBox.Show(this, $"Restart {sel.Count} service(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
-            return;
-
         BtnRestart.Enabled = false;
         BtnCancel.Enabled = true;
         AppendLog($"Restarting {sel.Count} service(s)...");
@@ -1307,6 +1306,7 @@ public sealed partial class FormMain : Form
             var results = await _orchestrator.RestartServicesAsync(sel, _currentOperationCts.Token);
 
             foreach (var s in sel)
+            {
                 if (results.TryGetValue(s.ServiceName, out var ok) && ok)
                 {
                     AppendLog($"Restarted: {s.ServiceName} ({s.DisplayName})");
@@ -1317,6 +1317,7 @@ public sealed partial class FormMain : Form
                     AppendLog($"Failed to restart {s.ServiceName}", LogLevel.Error);
                     _logger.LogError("Failed to restart service {ServiceName}", s.ServiceName);
                 }
+            }
 
             AppendLog($"Restart operation completed for {sel.Count} service(s).");
         }
@@ -1367,7 +1368,11 @@ public sealed partial class FormMain : Form
                 break;
 
             case { KeyCode: Keys.Escape }:
-                TxtFilter.Clear();
+                if (TxtFilter.Focused)
+                    TxtFilter.Clear();
+                else
+                    BtnCancel_Click(sender, e);
+
                 e.Handled = true;
                 break;
 

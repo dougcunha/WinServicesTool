@@ -32,9 +32,10 @@
             var resources = new System.ComponentModel.ComponentResourceManager(typeof(FormMain));
             tableLayoutPanel2 = new TableLayoutPanel();
             tableLayoutPanel3 = new TableLayoutPanel();
+            BtnRestartAsAdm = new Button();
+            Imgs = new ImageList(components);
             ChkStartAsAdm = new CheckBox();
             BtnLoad = new Button();
-            Imgs = new ImageList(components);
             BtnStart = new Button();
             BtnStop = new Button();
             BtnRestart = new Button();
@@ -74,7 +75,6 @@
             LblStatusServicesRunning = new ToolStripStatusLabel();
             LblProgresso = new ToolStripStatusLabel();
             ProgressBar = new ToolStripProgressBar();
-            dependenciesBindingSource = new BindingSource(components);
             tableLayoutPanel2.SuspendLayout();
             tableLayoutPanel3.SuspendLayout();
             tableLayoutPanelFilter.SuspendLayout();
@@ -85,7 +85,6 @@
             SplitMain.Panel2.SuspendLayout();
             SplitMain.SuspendLayout();
             StatusBar.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)dependenciesBindingSource).BeginInit();
             SuspendLayout();
             // 
             // tableLayoutPanel2
@@ -107,16 +106,18 @@
             // 
             // tableLayoutPanel3
             // 
-            tableLayoutPanel3.ColumnCount = 8;
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
+            tableLayoutPanel3.ColumnCount = 9;
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
             tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
-            tableLayoutPanel3.Controls.Add(ChkStartAsAdm, 7, 0);
+            tableLayoutPanel3.Controls.Add(BtnRestartAsAdm, 7, 0);
+            tableLayoutPanel3.Controls.Add(ChkStartAsAdm, 8, 0);
             tableLayoutPanel3.Controls.Add(BtnLoad, 0, 0);
             tableLayoutPanel3.Controls.Add(BtnStart, 1, 0);
             tableLayoutPanel3.Controls.Add(BtnStop, 2, 0);
@@ -128,8 +129,37 @@
             tableLayoutPanel3.Name = "tableLayoutPanel3";
             tableLayoutPanel3.RowCount = 1;
             tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
             tableLayoutPanel3.Size = new Size(1246, 44);
             tableLayoutPanel3.TabIndex = 1;
+            // 
+            // BtnRestartAsAdm
+            // 
+            BtnRestartAsAdm.Dock = DockStyle.Fill;
+            BtnRestartAsAdm.Font = new Font("Segoe UI", 9F);
+            BtnRestartAsAdm.ImageKey = "shield-user.png";
+            BtnRestartAsAdm.ImageList = Imgs;
+            BtnRestartAsAdm.Location = new Point(1019, 3);
+            BtnRestartAsAdm.Name = "BtnRestartAsAdm";
+            BtnRestartAsAdm.Size = new Size(104, 38);
+            BtnRestartAsAdm.TabIndex = 9;
+            BtnRestartAsAdm.Text = "Restart as Adm";
+            BtnRestartAsAdm.TextImageRelation = TextImageRelation.TextBeforeImage;
+            BtnRestartAsAdm.UseVisualStyleBackColor = true;
+            // 
+            // Imgs
+            // 
+            Imgs.ColorDepth = ColorDepth.Depth32Bit;
+            Imgs.ImageStream = (ImageListStreamer)resources.GetObject("Imgs.ImageStream");
+            Imgs.TransparentColor = Color.Transparent;
+            Imgs.Images.SetKeyName(0, "refresh-cw.png");
+            Imgs.Images.SetKeyName(1, "columns-3-cog.png");
+            Imgs.Images.SetKeyName(2, "play.png");
+            Imgs.Images.SetKeyName(3, "square.png");
+            Imgs.Images.SetKeyName(4, "rotate-ccw.png");
+            Imgs.Images.SetKeyName(5, "trending-up.png");
+            Imgs.Images.SetKeyName(6, "ban.png");
+            Imgs.Images.SetKeyName(7, "shield-user.png");
             // 
             // ChkStartAsAdm
             // 
@@ -149,34 +179,21 @@
             BtnLoad.ImageList = Imgs;
             BtnLoad.Location = new Point(3, 3);
             BtnLoad.Name = "BtnLoad";
-            BtnLoad.Size = new Size(94, 38);
+            BtnLoad.Size = new Size(104, 38);
             BtnLoad.TabIndex = 0;
             BtnLoad.Text = "Load (F5)";
             BtnLoad.TextImageRelation = TextImageRelation.TextBeforeImage;
             BtnLoad.UseVisualStyleBackColor = true;
             BtnLoad.Click += BtnLoad_Click;
             // 
-            // Imgs
-            // 
-            Imgs.ColorDepth = ColorDepth.Depth32Bit;
-            Imgs.ImageStream = (ImageListStreamer)resources.GetObject("Imgs.ImageStream");
-            Imgs.TransparentColor = Color.Transparent;
-            Imgs.Images.SetKeyName(0, "refresh-cw.png");
-            Imgs.Images.SetKeyName(1, "columns-3-cog.png");
-            Imgs.Images.SetKeyName(2, "play.png");
-            Imgs.Images.SetKeyName(3, "square.png");
-            Imgs.Images.SetKeyName(4, "rotate-ccw.png");
-            Imgs.Images.SetKeyName(5, "trending-up.png");
-            Imgs.Images.SetKeyName(6, "ban.png");
-            // 
             // BtnStart
             // 
             BtnStart.Dock = DockStyle.Fill;
             BtnStart.ImageKey = "play.png";
             BtnStart.ImageList = Imgs;
-            BtnStart.Location = new Point(103, 3);
+            BtnStart.Location = new Point(113, 3);
             BtnStart.Name = "BtnStart";
-            BtnStart.Size = new Size(94, 38);
+            BtnStart.Size = new Size(104, 38);
             BtnStart.TabIndex = 3;
             BtnStart.Text = "Start (F9)";
             BtnStart.TextImageRelation = TextImageRelation.TextBeforeImage;
@@ -188,9 +205,9 @@
             BtnStop.Dock = DockStyle.Fill;
             BtnStop.ImageKey = "square.png";
             BtnStop.ImageList = Imgs;
-            BtnStop.Location = new Point(203, 3);
+            BtnStop.Location = new Point(223, 3);
             BtnStop.Name = "BtnStop";
-            BtnStop.Size = new Size(94, 38);
+            BtnStop.Size = new Size(104, 38);
             BtnStop.TabIndex = 4;
             BtnStop.Text = "Stop (F2)";
             BtnStop.TextImageRelation = TextImageRelation.TextBeforeImage;
@@ -202,9 +219,9 @@
             BtnRestart.Dock = DockStyle.Fill;
             BtnRestart.ImageKey = "rotate-ccw.png";
             BtnRestart.ImageList = Imgs;
-            BtnRestart.Location = new Point(303, 3);
+            BtnRestart.Location = new Point(333, 3);
             BtnRestart.Name = "BtnRestart";
-            BtnRestart.Size = new Size(94, 38);
+            BtnRestart.Size = new Size(104, 38);
             BtnRestart.TabIndex = 5;
             BtnRestart.Text = "Restart (F7)";
             BtnRestart.TextImageRelation = TextImageRelation.TextBeforeImage;
@@ -216,9 +233,9 @@
             BtnChangeStartMode.Dock = DockStyle.Fill;
             BtnChangeStartMode.ImageKey = "trending-up.png";
             BtnChangeStartMode.ImageList = Imgs;
-            BtnChangeStartMode.Location = new Point(403, 3);
+            BtnChangeStartMode.Location = new Point(443, 3);
             BtnChangeStartMode.Name = "BtnChangeStartMode";
-            BtnChangeStartMode.Size = new Size(94, 38);
+            BtnChangeStartMode.Size = new Size(104, 38);
             BtnChangeStartMode.TabIndex = 6;
             BtnChangeStartMode.Text = "Start mode (F6)";
             BtnChangeStartMode.TextImageRelation = TextImageRelation.TextBeforeImage;
@@ -231,11 +248,11 @@
             BtnCancel.Font = new Font("Segoe UI", 9F);
             BtnCancel.ImageKey = "ban.png";
             BtnCancel.ImageList = Imgs;
-            BtnCancel.Location = new Point(503, 3);
+            BtnCancel.Location = new Point(553, 3);
             BtnCancel.Name = "BtnCancel";
-            BtnCancel.Size = new Size(94, 38);
+            BtnCancel.Size = new Size(104, 38);
             BtnCancel.TabIndex = 7;
-            BtnCancel.Text = "Cancel";
+            BtnCancel.Text = "Cancel (ESC)";
             BtnCancel.TextImageRelation = TextImageRelation.TextBeforeImage;
             BtnCancel.UseVisualStyleBackColor = true;
             BtnCancel.Click += BtnCancel_Click;
@@ -564,11 +581,6 @@
             ProgressBar.Name = "ProgressBar";
             ProgressBar.Size = new Size(500, 16);
             // 
-            // dependenciesBindingSource
-            // 
-            dependenciesBindingSource.DataMember = "Dependencies";
-            dependenciesBindingSource.DataSource = serviceBindingSource;
-            // 
             // FormMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -594,7 +606,6 @@
             SplitMain.ResumeLayout(false);
             StatusBar.ResumeLayout(false);
             StatusBar.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)dependenciesBindingSource).EndInit();
             ResumeLayout(false);
         }
 
@@ -623,7 +634,6 @@
         private ToolStripStatusLabel LblStatusServices;
         private ToolStripStatusLabel LblStatusServicesRunning;
         private ToolStripStatusLabel LblStatusSeparator;
-        private BindingSource dependenciesBindingSource;
         private DataGridViewTextBoxColumn ColServiceName;
         private DataGridViewTextBoxColumn ColServiceStartName;
         private DataGridViewTextBoxColumn ColDisplayName;
@@ -644,5 +654,6 @@
         private DataGridViewCheckBoxColumn ColCanShutdown;
         private ToolStripStatusLabel LblProgresso;
         private ToolStripProgressBar ProgressBar;
+        private Button BtnRestartAsAdm;
     }
 }

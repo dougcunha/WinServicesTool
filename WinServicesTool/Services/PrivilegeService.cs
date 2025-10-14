@@ -18,13 +18,14 @@ public sealed class PrivilegeService(ILogger<PrivilegeService> logger) : IPrivil
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Failed to determine administrator status");
+
             return false;
         }
     }
 
-    public void AskAndRestartAsAdmin(Form? owner, bool alwaysStartAsAdm)
+    public void AskAndRestartAsAdmin(Form? owner, bool shouldAsk)
     {
-        if (!alwaysStartAsAdm)
+        if (shouldAsk)
         {
             var resp = MessageBox.Show
             (
