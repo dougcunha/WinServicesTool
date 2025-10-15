@@ -21,17 +21,16 @@
         }
 
         #region Windows Form Designer generated code
-
         /// <summary>
-        ///  Required method for Designer support - do not modify
-        ///  the contents of this method with the code editor.
+        /// Required method for Designer support - do not modify
+        /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
             var resources = new System.ComponentModel.ComponentResourceManager(typeof(FormMain));
             tableLayoutPanel2 = new TableLayoutPanel();
-            tableLayoutPanel3 = new TableLayoutPanel();
+            PnlActions = new TableLayoutPanel();
             BtnRestartAsAdm = new Button();
             Imgs = new ImageList(components);
             ChkStartAsAdm = new CheckBox();
@@ -41,7 +40,7 @@
             BtnRestart = new Button();
             BtnChangeStartMode = new Button();
             BtnCancel = new Button();
-            tableLayoutPanelFilter = new TableLayoutPanel();
+            PnlFiltros = new TableLayoutPanel();
             CbFilterStatus = new ComboBox();
             CbFilterStartMode = new ComboBox();
             TxtFilter = new TextBox();
@@ -72,6 +71,14 @@
             MnuLog = new ContextMenuStrip(components);
             clearLogToolStripMenuItem = new ToolStripMenuItem();
             SplitMain = new SplitContainer();
+            TabCtrl = new TabControl();
+            TabLog = new TabPage();
+            TabDetail = new TabPage();
+            PnlDetails = new TableLayoutPanel();
+            LblDependencies = new Label();
+            LblDescription = new Label();
+            LstDependencies = new ListView();
+            TextDescription = new TextBox();
             StatusBar = new StatusStrip();
             LblStatusServices = new ToolStripStatusLabel();
             LblStatusSeparator = new ToolStripStatusLabel();
@@ -79,8 +86,8 @@
             LblProgresso = new ToolStripStatusLabel();
             ProgressBar = new ToolStripProgressBar();
             tableLayoutPanel2.SuspendLayout();
-            tableLayoutPanel3.SuspendLayout();
-            tableLayoutPanelFilter.SuspendLayout();
+            PnlActions.SuspendLayout();
+            PnlFiltros.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)GridServs).BeginInit();
             ((System.ComponentModel.ISupportInitialize)serviceBindingSource).BeginInit();
             MnuLog.SuspendLayout();
@@ -88,6 +95,10 @@
             SplitMain.Panel1.SuspendLayout();
             SplitMain.Panel2.SuspendLayout();
             SplitMain.SuspendLayout();
+            TabCtrl.SuspendLayout();
+            TabLog.SuspendLayout();
+            TabDetail.SuspendLayout();
+            PnlDetails.SuspendLayout();
             StatusBar.SuspendLayout();
             SuspendLayout();
             // 
@@ -95,8 +106,8 @@
             // 
             tableLayoutPanel2.ColumnCount = 1;
             tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            tableLayoutPanel2.Controls.Add(tableLayoutPanel3, 0, 0);
-            tableLayoutPanel2.Controls.Add(tableLayoutPanelFilter, 0, 1);
+            tableLayoutPanel2.Controls.Add(PnlActions, 0, 0);
+            tableLayoutPanel2.Controls.Add(PnlFiltros, 0, 1);
             tableLayoutPanel2.Controls.Add(GridServs, 0, 2);
             tableLayoutPanel2.Dock = DockStyle.Fill;
             tableLayoutPanel2.Location = new Point(0, 0);
@@ -108,34 +119,34 @@
             tableLayoutPanel2.Size = new Size(1252, 561);
             tableLayoutPanel2.TabIndex = 0;
             // 
-            // tableLayoutPanel3
+            // PnlActions
             // 
-            tableLayoutPanel3.ColumnCount = 9;
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 129F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 113F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 122F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
-            tableLayoutPanel3.Controls.Add(BtnRestartAsAdm, 7, 0);
-            tableLayoutPanel3.Controls.Add(ChkStartAsAdm, 8, 0);
-            tableLayoutPanel3.Controls.Add(BtnLoad, 0, 0);
-            tableLayoutPanel3.Controls.Add(BtnStart, 1, 0);
-            tableLayoutPanel3.Controls.Add(BtnStop, 2, 0);
-            tableLayoutPanel3.Controls.Add(BtnRestart, 3, 0);
-            tableLayoutPanel3.Controls.Add(BtnChangeStartMode, 4, 0);
-            tableLayoutPanel3.Controls.Add(BtnCancel, 5, 0);
-            tableLayoutPanel3.Dock = DockStyle.Fill;
-            tableLayoutPanel3.Location = new Point(3, 3);
-            tableLayoutPanel3.Name = "tableLayoutPanel3";
-            tableLayoutPanel3.RowCount = 1;
-            tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel3.Size = new Size(1246, 44);
-            tableLayoutPanel3.TabIndex = 1;
+            PnlActions.ColumnCount = 9;
+            PnlActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
+            PnlActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
+            PnlActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
+            PnlActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
+            PnlActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 129F));
+            PnlActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 113F));
+            PnlActions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            PnlActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 122F));
+            PnlActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
+            PnlActions.Controls.Add(BtnRestartAsAdm, 7, 0);
+            PnlActions.Controls.Add(ChkStartAsAdm, 8, 0);
+            PnlActions.Controls.Add(BtnLoad, 0, 0);
+            PnlActions.Controls.Add(BtnStart, 1, 0);
+            PnlActions.Controls.Add(BtnStop, 2, 0);
+            PnlActions.Controls.Add(BtnRestart, 3, 0);
+            PnlActions.Controls.Add(BtnChangeStartMode, 4, 0);
+            PnlActions.Controls.Add(BtnCancel, 5, 0);
+            PnlActions.Dock = DockStyle.Fill;
+            PnlActions.Location = new Point(3, 3);
+            PnlActions.Name = "PnlActions";
+            PnlActions.RowCount = 1;
+            PnlActions.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            PnlActions.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+            PnlActions.Size = new Size(1246, 44);
+            PnlActions.TabIndex = 1;
             // 
             // BtnRestartAsAdm
             // 
@@ -262,28 +273,28 @@
             BtnCancel.UseVisualStyleBackColor = true;
             BtnCancel.Click += BtnCancel_Click;
             // 
-            // tableLayoutPanelFilter
+            // PnlFiltros
             // 
-            tableLayoutPanelFilter.ColumnCount = 6;
-            tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70F));
-            tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
-            tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 50F));
-            tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
-            tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            tableLayoutPanelFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 30F));
-            tableLayoutPanelFilter.Controls.Add(CbFilterStatus, 1, 0);
-            tableLayoutPanelFilter.Controls.Add(CbFilterStartMode, 3, 0);
-            tableLayoutPanelFilter.Controls.Add(TxtFilter, 4, 0);
-            tableLayoutPanelFilter.Controls.Add(LblFilterStatus, 0, 0);
-            tableLayoutPanelFilter.Controls.Add(LblStartMode, 2, 0);
-            tableLayoutPanelFilter.Controls.Add(BtnColumns, 5, 0);
-            tableLayoutPanelFilter.Dock = DockStyle.Fill;
-            tableLayoutPanelFilter.Location = new Point(3, 53);
-            tableLayoutPanelFilter.Name = "tableLayoutPanelFilter";
-            tableLayoutPanelFilter.RowCount = 1;
-            tableLayoutPanelFilter.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanelFilter.Size = new Size(1246, 34);
-            tableLayoutPanelFilter.TabIndex = 2;
+            PnlFiltros.ColumnCount = 6;
+            PnlFiltros.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70F));
+            PnlFiltros.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
+            PnlFiltros.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 50F));
+            PnlFiltros.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
+            PnlFiltros.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            PnlFiltros.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 30F));
+            PnlFiltros.Controls.Add(CbFilterStatus, 1, 0);
+            PnlFiltros.Controls.Add(CbFilterStartMode, 3, 0);
+            PnlFiltros.Controls.Add(TxtFilter, 4, 0);
+            PnlFiltros.Controls.Add(LblFilterStatus, 0, 0);
+            PnlFiltros.Controls.Add(LblStartMode, 2, 0);
+            PnlFiltros.Controls.Add(BtnColumns, 5, 0);
+            PnlFiltros.Dock = DockStyle.Fill;
+            PnlFiltros.Location = new Point(3, 53);
+            PnlFiltros.Name = "PnlFiltros";
+            PnlFiltros.RowCount = 1;
+            PnlFiltros.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            PnlFiltros.Size = new Size(1246, 34);
+            PnlFiltros.TabIndex = 2;
             // 
             // CbFilterStatus
             // 
@@ -378,6 +389,7 @@
             GridServs.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             GridServs.Size = new Size(1246, 465);
             GridServs.TabIndex = 0;
+            GridServs.RowEnter += GridServs_RowEnter;
             // 
             // ColServiceName
             // 
@@ -533,11 +545,11 @@
             TextLog.BorderStyle = BorderStyle.None;
             TextLog.ContextMenuStrip = MnuLog;
             TextLog.Dock = DockStyle.Fill;
-            TextLog.Location = new Point(0, 0);
+            TextLog.Location = new Point(3, 3);
             TextLog.Margin = new Padding(10);
             TextLog.Name = "TextLog";
             TextLog.ReadOnly = true;
-            TextLog.Size = new Size(1252, 104);
+            TextLog.Size = new Size(1238, 70);
             TextLog.TabIndex = 1;
             TextLog.Text = "";
             // 
@@ -567,11 +579,110 @@
             // 
             // SplitMain.Panel2
             // 
-            SplitMain.Panel2.Controls.Add(TextLog);
+            SplitMain.Panel2.Controls.Add(TabCtrl);
             SplitMain.Panel2.Controls.Add(StatusBar);
             SplitMain.Size = new Size(1252, 691);
             SplitMain.SplitterDistance = 561;
             SplitMain.TabIndex = 2;
+            // 
+            // TabCtrl
+            // 
+            TabCtrl.Controls.Add(TabLog);
+            TabCtrl.Controls.Add(TabDetail);
+            TabCtrl.Dock = DockStyle.Fill;
+            TabCtrl.Location = new Point(0, 0);
+            TabCtrl.Name = "TabCtrl";
+            TabCtrl.SelectedIndex = 0;
+            TabCtrl.Size = new Size(1252, 104);
+            TabCtrl.TabIndex = 10;
+            // 
+            // TabLog
+            // 
+            TabLog.Controls.Add(TextLog);
+            TabLog.Location = new Point(4, 24);
+            TabLog.Name = "TabLog";
+            TabLog.Padding = new Padding(3);
+            TabLog.Size = new Size(1244, 76);
+            TabLog.TabIndex = 0;
+            TabLog.Text = "Log";
+            TabLog.UseVisualStyleBackColor = true;
+            // 
+            // TabDetail
+            // 
+            TabDetail.Controls.Add(PnlDetails);
+            TabDetail.Location = new Point(4, 24);
+            TabDetail.Name = "TabDetail";
+            TabDetail.Padding = new Padding(3);
+            TabDetail.Size = new Size(1244, 76);
+            TabDetail.TabIndex = 1;
+            TabDetail.Text = "Details";
+            TabDetail.UseVisualStyleBackColor = true;
+            // 
+            // PnlDetails
+            // 
+            PnlDetails.ColumnCount = 2;
+            PnlDetails.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            PnlDetails.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            PnlDetails.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 20F));
+            PnlDetails.Controls.Add(LblDependencies, 1, 0);
+            PnlDetails.Controls.Add(LblDescription, 0, 0);
+            PnlDetails.Controls.Add(LstDependencies, 1, 1);
+            PnlDetails.Controls.Add(TextDescription, 0, 1);
+            PnlDetails.Dock = DockStyle.Fill;
+            PnlDetails.Location = new Point(3, 3);
+            PnlDetails.Name = "PnlDetails";
+            PnlDetails.RowCount = 2;
+            PnlDetails.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+            PnlDetails.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            PnlDetails.Size = new Size(1238, 70);
+            PnlDetails.TabIndex = 0;
+            // 
+            // LblDependencies
+            // 
+            LblDependencies.AutoSize = true;
+            LblDependencies.Dock = DockStyle.Fill;
+            LblDependencies.FlatStyle = FlatStyle.Flat;
+            LblDependencies.Location = new Point(622, 0);
+            LblDependencies.Name = "LblDependencies";
+            LblDependencies.Size = new Size(613, 20);
+            LblDependencies.TabIndex = 1;
+            LblDependencies.Text = "Dependencies";
+            LblDependencies.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // LblDescription
+            // 
+            LblDescription.AutoSize = true;
+            LblDescription.Dock = DockStyle.Fill;
+            LblDescription.FlatStyle = FlatStyle.Flat;
+            LblDescription.Location = new Point(3, 0);
+            LblDescription.Name = "LblDescription";
+            LblDescription.Size = new Size(613, 20);
+            LblDescription.TabIndex = 3;
+            LblDescription.Text = "Description";
+            LblDescription.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // LstDependencies
+            // 
+            LstDependencies.BorderStyle = BorderStyle.None;
+            LstDependencies.Dock = DockStyle.Fill;
+            LstDependencies.Location = new Point(622, 23);
+            LstDependencies.Name = "LstDependencies";
+            LstDependencies.Size = new Size(613, 44);
+            LstDependencies.TabIndex = 0;
+            LstDependencies.UseCompatibleStateImageBehavior = false;
+            LstDependencies.View = View.List;
+            // 
+            // TextDescription
+            // 
+            TextDescription.BackColor = Color.White;
+            TextDescription.BorderStyle = BorderStyle.None;
+            TextDescription.Dock = DockStyle.Fill;
+            TextDescription.Location = new Point(3, 23);
+            TextDescription.Multiline = true;
+            TextDescription.Name = "TextDescription";
+            TextDescription.ReadOnly = true;
+            TextDescription.Size = new Size(613, 44);
+            TextDescription.TabIndex = 2;
             // 
             // StatusBar
             // 
@@ -627,10 +738,10 @@
             Text = "WinServicesTool";
             KeyDown += FormPrincipal_KeyDown;
             tableLayoutPanel2.ResumeLayout(false);
-            tableLayoutPanel3.ResumeLayout(false);
-            tableLayoutPanel3.PerformLayout();
-            tableLayoutPanelFilter.ResumeLayout(false);
-            tableLayoutPanelFilter.PerformLayout();
+            PnlActions.ResumeLayout(false);
+            PnlActions.PerformLayout();
+            PnlFiltros.ResumeLayout(false);
+            PnlFiltros.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)GridServs).EndInit();
             ((System.ComponentModel.ISupportInitialize)serviceBindingSource).EndInit();
             MnuLog.ResumeLayout(false);
@@ -639,27 +750,39 @@
             SplitMain.Panel2.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)SplitMain).EndInit();
             SplitMain.ResumeLayout(false);
+            TabCtrl.ResumeLayout(false);
+            TabLog.ResumeLayout(false);
+            TabDetail.ResumeLayout(false);
+            PnlDetails.ResumeLayout(false);
+            PnlDetails.PerformLayout();
             StatusBar.ResumeLayout(false);
             StatusBar.PerformLayout();
             ResumeLayout(false);
         }
 
+        private System.Windows.Forms.ListView LstDependencies;
+
+        private System.Windows.Forms.TableLayoutPanel PnlDetails;
+
+        private System.Windows.Forms.TabControl TabCtrl;
+        private System.Windows.Forms.TabPage TabLog;
+        private System.Windows.Forms.TabPage TabDetail;
         #endregion
         private TableLayoutPanel tableLayoutPanel2;
-        private DataGridView GridServs;
+        private System.Windows.Forms.DataGridView GridServs;
         private BindingSource serviceBindingSource;
-        private TableLayoutPanel tableLayoutPanel3;
-        private TableLayoutPanel tableLayoutPanelFilter;
-        private ComboBox CbFilterStatus;
-        private ComboBox CbFilterStartMode;
+        private TableLayoutPanel PnlActions;
+        private TableLayoutPanel PnlFiltros;
+        private System.Windows.Forms.ComboBox CbFilterStatus;
+        private System.Windows.Forms.ComboBox CbFilterStartMode;
         private Button BtnStart;
         private Button BtnStop;
         private Button BtnRestart;
         private Button BtnChangeStartMode;
         private Button BtnLoad;
-        private TextBox TxtFilter;
+        private System.Windows.Forms.TextBox TxtFilter;
         private ImageList Imgs;
-        private RichTextBox TextLog;
+        private System.Windows.Forms.RichTextBox TextLog;
         private SplitContainer SplitMain;
         private Label LblFilterStatus;
         private Label LblStartMode;
@@ -693,5 +816,8 @@
         private Button BtnColumns;
         private ContextMenuStrip MnuLog;
         private ToolStripMenuItem clearLogToolStripMenuItem;
+        private Label LblDependencies;
+        private Label LblDescription;
+        private TextBox TextDescription;
     }
 }

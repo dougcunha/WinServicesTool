@@ -98,7 +98,7 @@ public static class ServiceConfigurationExtensions
             ServiceState.ContinuePending => System.ServiceProcess.ServiceControllerStatus.ContinuePending,
             ServiceState.PausePending => System.ServiceProcess.ServiceControllerStatus.PausePending,
             ServiceState.Paused => System.ServiceProcess.ServiceControllerStatus.Paused,
-            _ => System.ServiceProcess.ServiceControllerStatus.Stopped
+            var _ => System.ServiceProcess.ServiceControllerStatus.Stopped
         };
 
     /// <summary>
@@ -112,7 +112,7 @@ public static class ServiceConfigurationExtensions
             StartType.Automatic => System.ServiceProcess.ServiceStartMode.Automatic,
             StartType.Manual => System.ServiceProcess.ServiceStartMode.Manual,
             StartType.Disabled => System.ServiceProcess.ServiceStartMode.Disabled,
-            _ => System.ServiceProcess.ServiceStartMode.Manual
+            var _ => System.ServiceProcess.ServiceStartMode.Manual
         };
 
     /// <summary>
@@ -136,28 +136,28 @@ public static class ServiceConfigurationExtensions
 public sealed class ServicePathHelper : IServicePathHelper
 {
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-    static extern IntPtr OpenSCManager(string? machineName, string? databaseName, uint dwAccess);
+    private static extern nint OpenSCManager(string? machineName, string? databaseName, uint dwAccess);
 
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-    static extern IntPtr OpenService(IntPtr hSCManager, string lpServiceName, uint dwDesiredAccess);
+    private static extern nint OpenService(nint hSCManager, string lpServiceName, uint dwDesiredAccess);
 
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-    static extern bool QueryServiceConfig(IntPtr hService, IntPtr lpServiceConfig, uint cbBufSize, out uint pcbBytesNeeded);
+    private static extern bool QueryServiceConfig(nint hService, nint lpServiceConfig, uint cbBufSize, out uint pcbBytesNeeded);
 
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-    static extern bool QueryServiceConfig2(IntPtr hService, uint dwInfoLevel, IntPtr lpBuffer, uint cbBufSize, out uint pcbBytesNeeded);
+    private static extern bool QueryServiceConfig2(nint hService, uint dwInfoLevel, nint lpBuffer, uint cbBufSize, out uint pcbBytesNeeded);
 
     [DllImport("advapi32.dll", SetLastError = true)]
-    static extern bool QueryServiceStatusEx(IntPtr hService, int infoLevel, IntPtr lpBuffer, uint cbBufSize, out uint pcbBytesNeeded);
+    private static extern bool QueryServiceStatusEx(nint hService, int infoLevel, nint lpBuffer, uint cbBufSize, out uint pcbBytesNeeded);
 
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-    static extern bool EnumServicesStatusEx
+    private static extern bool EnumServicesStatusEx
     (
-        IntPtr hSCManager,
+        nint hSCManager,
         int infoLevel,
         uint dwServiceType,
         uint dwServiceState,
-        IntPtr lpServices,
+        nint lpServices,
         uint cbBufSize,
         out uint pcbBytesNeeded,
         out uint lpServicesReturned,
@@ -166,13 +166,13 @@ public sealed class ServicePathHelper : IServicePathHelper
     );
 
     [DllImport("advapi32.dll", SetLastError = true)]
-    static extern bool CloseServiceHandle(IntPtr hSCObject);
+    private static extern bool CloseServiceHandle(nint hSCObject);
 
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-    static extern bool StartService(IntPtr hService, uint dwNumServiceArgs, IntPtr lpServiceArgVectors);
+    private static extern bool StartService(nint hService, uint dwNumServiceArgs, nint lpServiceArgVectors);
 
     [DllImport("advapi32.dll", SetLastError = true)]
-    static extern bool ControlService(IntPtr hService, uint dwControl, ref ServiceStatus lpServiceStatus);
+    private static extern bool ControlService(nint hService, uint dwControl, ref ServiceStatus lpServiceStatus);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct ServiceStatus
@@ -261,7 +261,7 @@ public sealed class ServicePathHelper : IServicePathHelper
         public ServiceStatusProcess ServiceStatusProcess;
     }
 
-    private readonly IntPtr _scmHandle;
+    private readonly nint _scmHandle;
     private readonly SemaphoreSlim _semaphore;
     private bool _disposed;
 
@@ -274,7 +274,7 @@ public sealed class ServicePathHelper : IServicePathHelper
     {
         _scmHandle = OpenSCManager(null, null, SC_MANAGER_CONNECT | SC_MANAGER_ENUMERATE_SERVICE);
 
-        if (_scmHandle == IntPtr.Zero)
+        if (_scmHandle == nint.Zero)
             throw new Win32Exception(Marshal.GetLastWin32Error(), "OpenSCManager failed");
 
         _semaphore = new SemaphoreSlim(maxConcurrency, maxConcurrency);
@@ -293,17 +293,19 @@ public sealed class ServicePathHelper : IServicePathHelper
 
         while (true)
         {
-            EnumServicesStatusEx(
+            EnumServicesStatusEx
+            (
                 _scmHandle,
                 SC_ENUM_PROCESS_INFO,
                 SERVICE_WIN32,
                 SERVICE_STATE_ALL,
-                IntPtr.Zero,
+                nint.Zero,
                 0,
                 out var bytesNeeded,
-                out _,
+                out var _,
                 ref resumeHandle,
-                null);
+                null
+            );
 
             var lastError = Marshal.GetLastWin32Error();
             if (lastError != ERROR_INSUFFICIENT_BUFFER && lastError != ERROR_MORE_DATA)
@@ -320,10 +322,11 @@ public sealed class ServicePathHelper : IServicePathHelper
                     SERVICE_STATE_ALL,
                     buffer,
                     bytesNeeded,
-                    out _,
+                    out var _,
                     out var servicesReturned,
                     ref resumeHandle,
-                    null))
+                    null)
+                )
                     break;
 
                 var structSize = Marshal.SizeOf<EnumServiceStatusProcess>();
@@ -337,7 +340,7 @@ public sealed class ServicePathHelper : IServicePathHelper
                     if (!string.IsNullOrEmpty(serviceName))
                         services.Add(serviceName);
 
-                    current = IntPtr.Add(current, structSize);
+                    current = nint.Add(current, structSize);
                 }
             }
             finally
@@ -360,16 +363,16 @@ public sealed class ServicePathHelper : IServicePathHelper
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var service = IntPtr.Zero;
+        var service = nint.Zero;
 
         try
         {
             service = OpenService(_scmHandle, serviceName, SERVICE_QUERY_CONFIG | SERVICE_QUERY_STATUS);
 
-            if (service == IntPtr.Zero)
+            if (service == nint.Zero)
                 return null; // Service not found or access denied
 
-            QueryServiceConfig(service, IntPtr.Zero, 0, out var bytesNeeded);
+            QueryServiceConfig(service, nint.Zero, 0, out var bytesNeeded);
 
             if (Marshal.GetLastWin32Error() != ERROR_INSUFFICIENT_BUFFER)
                 return null;
@@ -378,7 +381,7 @@ public sealed class ServicePathHelper : IServicePathHelper
 
             try
             {
-                if (!QueryServiceConfig(service, buffer, bytesNeeded, out _))
+                if (!QueryServiceConfig(service, buffer, bytesNeeded, out var _))
                     return null;
 
                 var config = Marshal.PtrToStructure<QueryServiceConf>(buffer);
@@ -386,12 +389,13 @@ public sealed class ServicePathHelper : IServicePathHelper
                 var binaryPath = Marshal.PtrToStringUni(config.lpBinaryPathName);
                 var expandedPath = Environment.ExpandEnvironmentVariables(binaryPath ?? "");
 
-                var loadOrderGroup = config.lpLoadOrderGroup != IntPtr.Zero
+                var loadOrderGroup = config.lpLoadOrderGroup != nint.Zero
                     ? Marshal.PtrToStringUni(config.lpLoadOrderGroup)
                     : null;
 
                 string[]? dependencies = null;
-                if (config.lpDependencies != IntPtr.Zero)
+
+                if (config.lpDependencies != nint.Zero)
                 {
                     var depList = new List<string>();
                     var offset = 0;
@@ -399,6 +403,7 @@ public sealed class ServicePathHelper : IServicePathHelper
                     while (true)
                     {
                         var dep = Marshal.PtrToStringUni(config.lpDependencies + offset * 2);
+
                         if (string.IsNullOrEmpty(dep))
                             break;
 
@@ -409,11 +414,11 @@ public sealed class ServicePathHelper : IServicePathHelper
                     dependencies = depList.Count > 0 ? [.. depList] : null;
                 }
 
-                var serviceStartName = config.lpServiceStartName != IntPtr.Zero
+                var serviceStartName = config.lpServiceStartName != nint.Zero
                     ? Marshal.PtrToStringUni(config.lpServiceStartName)
                     : null;
 
-                var displayName = config.lpDisplayName != IntPtr.Zero
+                var displayName = config.lpDisplayName != nint.Zero
                     ? Marshal.PtrToStringUni(config.lpDisplayName)
                     : null;
 
@@ -451,7 +456,7 @@ public sealed class ServicePathHelper : IServicePathHelper
         }
         finally
         {
-            if (service != IntPtr.Zero)
+            if (service != nint.Zero)
                 CloseServiceHandle(service);
         }
     }
@@ -484,10 +489,12 @@ public sealed class ServicePathHelper : IServicePathHelper
     /// <param name="progress">Optional progress reporter (reports completed count)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Dictionary mapping service names to their configurations</returns>
-    public async Task<Dictionary<string, ServiceConfiguration?>> GetServiceConfigurationsAsync(
+    public async Task<Dictionary<string, ServiceConfiguration?>> GetServiceConfigurationsAsync
+    (
         IEnumerable<string> serviceNames,
         IProgress<int>? progress = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         var serviceList = serviceNames.ToList();
         var results = new Dictionary<string, ServiceConfiguration?>(serviceList.Count);
@@ -527,14 +534,14 @@ public sealed class ServicePathHelper : IServicePathHelper
         return await GetServiceConfigurationsAsync(serviceNames, progress, cancellationToken);
     }
 
-    private static bool QueryDelayedAutoStart(IntPtr serviceHandle)
+    private static bool QueryDelayedAutoStart(nint serviceHandle)
     {
         var bufferSize = (uint)Marshal.SizeOf<ServiceDelayedAutoStartInfo>();
         var buffer = Marshal.AllocHGlobal((int)bufferSize);
 
         try
         {
-            if (QueryServiceConfig2(serviceHandle, SERVICE_CONFIG_DELAYED_AUTO_START_INFO, buffer, bufferSize, out _))
+            if (QueryServiceConfig2(serviceHandle, SERVICE_CONFIG_DELAYED_AUTO_START_INFO, buffer, bufferSize, out var _))
             {
                 var delayedInfo = Marshal.PtrToStructure<ServiceDelayedAutoStartInfo>(buffer);
 
@@ -553,9 +560,9 @@ public sealed class ServicePathHelper : IServicePathHelper
         }
     }
 
-    private static string? QueryServiceDescription(IntPtr serviceHandle)
+    private static string? QueryServiceDescription(nint serviceHandle)
     {
-        QueryServiceConfig2(serviceHandle, SERVICE_CONFIG_DESCRIPTION, IntPtr.Zero, 0, out var bytesNeeded);
+        QueryServiceConfig2(serviceHandle, SERVICE_CONFIG_DESCRIPTION, nint.Zero, 0, out var bytesNeeded);
 
         if (Marshal.GetLastWin32Error() != ERROR_INSUFFICIENT_BUFFER)
             return null;
@@ -564,15 +571,14 @@ public sealed class ServicePathHelper : IServicePathHelper
 
         try
         {
-            if (QueryServiceConfig2(serviceHandle, SERVICE_CONFIG_DESCRIPTION, buffer, bytesNeeded, out _))
-            {
-                var descInfo = Marshal.PtrToStructure<ServiceDescription>(buffer);
-                return descInfo.lpDescription != IntPtr.Zero
-                    ? Marshal.PtrToStringUni(descInfo.lpDescription)
-                    : null;
-            }
+            if (!QueryServiceConfig2(serviceHandle, SERVICE_CONFIG_DESCRIPTION, buffer, bytesNeeded, out var _))
+                return null;
 
-            return null;
+            var descInfo = Marshal.PtrToStructure<ServiceDescription>(buffer);
+
+            return descInfo.lpDescription != nint.Zero
+                ? Marshal.PtrToStringUni(descInfo.lpDescription)
+                : null;
         }
         catch
         {
@@ -584,7 +590,7 @@ public sealed class ServicePathHelper : IServicePathHelper
         }
     }
 
-    private static ServiceStatusProcess QueryServiceStatus(IntPtr serviceHandle)
+    private static ServiceStatusProcess QueryServiceStatus(nint serviceHandle)
     {
         var bufferSize = (uint)Marshal.SizeOf<ServiceStatusProcess>();
         var buffer = Marshal.AllocHGlobal((int)bufferSize);
@@ -614,13 +620,13 @@ public sealed class ServicePathHelper : IServicePathHelper
             cancellationToken.ThrowIfCancellationRequested();
             ObjectDisposedException.ThrowIf(_disposed, this);
 
-            var serviceHandle = IntPtr.Zero;
+            var serviceHandle = nint.Zero;
 
             try
             {
                 serviceHandle = OpenService(_scmHandle, serviceName, SERVICE_QUERY_STATUS | SERVICE_START);
 
-                if (serviceHandle == IntPtr.Zero)
+                if (serviceHandle == nint.Zero)
                     throw new InvalidOperationException($"Failed to open service '{serviceName}'. Error: {Marshal.GetLastWin32Error()}");
 
                 var status = QueryServiceStatus(serviceHandle);
@@ -628,7 +634,7 @@ public sealed class ServicePathHelper : IServicePathHelper
                 if (status.dwCurrentState == (uint)ServiceState.Running)
                     return;
 
-                if (!StartService(serviceHandle, 0, IntPtr.Zero))
+                if (!StartService(serviceHandle, 0, nint.Zero))
                 {
                     var error = Marshal.GetLastWin32Error();
                     throw new InvalidOperationException($"Failed to start service '{serviceName}'. Error: {error}");
@@ -652,7 +658,7 @@ public sealed class ServicePathHelper : IServicePathHelper
             }
             finally
             {
-                if (serviceHandle != IntPtr.Zero)
+                if (serviceHandle != nint.Zero)
                     CloseServiceHandle(serviceHandle);
             }
         }, cancellationToken);
@@ -671,13 +677,13 @@ public sealed class ServicePathHelper : IServicePathHelper
             cancellationToken.ThrowIfCancellationRequested();
             ObjectDisposedException.ThrowIf(_disposed, this);
 
-            var serviceHandle = IntPtr.Zero;
+            var serviceHandle = nint.Zero;
 
             try
             {
                 serviceHandle = OpenService(_scmHandle, serviceName, SERVICE_QUERY_STATUS | SERVICE_STOP);
 
-                if (serviceHandle == IntPtr.Zero)
+                if (serviceHandle == nint.Zero)
                     throw new InvalidOperationException($"Failed to open service '{serviceName}'. Error: {Marshal.GetLastWin32Error()}");
 
                 var status = QueryServiceStatus(serviceHandle);
@@ -711,7 +717,7 @@ public sealed class ServicePathHelper : IServicePathHelper
             }
             finally
             {
-                if (serviceHandle != IntPtr.Zero)
+                if (serviceHandle != nint.Zero)
                     CloseServiceHandle(serviceHandle);
             }
         }, cancellationToken);
@@ -765,7 +771,7 @@ public sealed class ServicePathHelper : IServicePathHelper
 
         _semaphore.Dispose();
 
-        if (_scmHandle != IntPtr.Zero)
+        if (_scmHandle != nint.Zero)
             CloseServiceHandle(_scmHandle);
 
         _disposed = true;

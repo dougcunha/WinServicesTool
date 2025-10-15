@@ -122,6 +122,17 @@ public sealed partial class FormMain : Form
         Load += FormPrincipal_Load;
         Shown += FormPrincipal_Shown;
         BtnRestartAsAdm.Click += BtnRestartAsAdm_Click;
+        TabCtrl.Selected += TabCtrl_Selected;
+    }
+
+    private void TabCtrl_Selected(object? sender, TabControlEventArgs e)
+    {
+        if (TabCtrl.SelectedTab != TabDetail)
+            return;
+
+        var focusedService = GetFocusedService();
+        TextDescription.Text = focusedService?.Description ?? string.Empty;
+        PopulateDependenciesList(focusedService);
     }
 
     private void BtnRestartAsAdm_Click(object? sender, EventArgs e)
@@ -457,24 +468,26 @@ public sealed partial class FormMain : Form
 
         try
         {
-            var editForm = _formEditServiceFactory(
+            var editForm = _formEditServiceFactory
+            (
                 service.ServiceName,
                 service.DisplayName ?? string.Empty,
                 service.Description ?? string.Empty
             );
 
-            if (editForm.ShowDialog(this) == DialogResult.OK)
-            {
-                // Update the service configuration in memory
-                service.DisplayName = editForm.DisplayName;
-                service.Description = editForm.Description;
+            if (editForm.ShowDialog(this) != DialogResult.OK)
+                return;
 
-                // Refresh the grid to show updated values
-                GridServs.Refresh();
+            // Update the service configuration in memory
+            service.DisplayName = editForm.DisplayName;
+            service.Description = editForm.Description;
+            TextDescription.Text = service.Description;
 
-                AppendLog($"Service information updated for {service.ServiceName}");
-                _logger.LogDebug("Service information updated for {ServiceName}", service.ServiceName);
-            }
+            // Refresh the grid to show updated values
+            GridServs.Refresh();
+
+            AppendLog($"Service information updated for {service.ServiceName}");
+            _logger.LogDebug("Service information updated for {ServiceName}", service.ServiceName);
         }
         catch (Exception ex)
         {
@@ -1286,6 +1299,9 @@ public sealed partial class FormMain : Form
             .Where(s => s != null)
             .Cast<ServiceConfiguration>();
 
+    private ServiceConfiguration? GetFocusedService()
+        => GridServs.CurrentRow?.DataBoundItem as ServiceConfiguration;
+
     private async void BtnStart_Click(object? sender, EventArgs e)
     {
         var selectedServices = GetSelectedServices().ToList();
@@ -1530,4 +1546,27 @@ public sealed partial class FormMain : Form
 
     private void clearLogToolStripMenuItem_Click(object sender, EventArgs e)
         => TextLog.Clear();
+
+    private void GridServs_RowEnter(object sender, DataGridViewCellEventArgs e)
+    {
+        LstDependencies.Items.Clear();
+        TextDescription.Clear();
+
+        if (TabCtrl.SelectedTab != TabDetail)
+            return;
+
+        var focused = GridServs.Rows[e.RowIndex].DataBoundItem as ServiceConfiguration;
+        TextDescription.Text = focused?.Description;
+
+        PopulateDependenciesList(focused);
+    }
+
+    private void PopulateDependenciesList(ServiceConfiguration? service)
+    {
+        if (service?.Dependencies == null || service.Dependencies.Length == 0)
+            return;
+
+        foreach (var dep in service.Dependencies.Select(s => _allServices.Find(a => a.ServiceName == s)).Where(s => s is not null))
+            LstDependencies.Items.Add($"• {dep!.DisplayName} ({dep.ServiceName})");
+    }
 }
