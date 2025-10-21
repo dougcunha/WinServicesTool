@@ -373,6 +373,14 @@ public sealed partial class FormMain : Form
                 var editService = new ToolStripMenuItem("Edit Service Info...") { Enabled = _isRunningAsAdmin };
                 editService.Click += (_, _) => EditServiceInfo(selected[0]);
                 menu.Items.Add(editService);
+
+                // Edit NSSM properties (only for NSSM-managed services)
+                if (selected[0].IsNssmManaged)
+                {
+                    var editNssm = new ToolStripMenuItem("Edit NSSM Properties...") { Enabled = _isRunningAsAdmin };
+                    editNssm.Click += (_, _) => EditNssmProperties(selected[0]);
+                    menu.Items.Add(editNssm);
+                }
             }
 
             // Separator
@@ -493,6 +501,77 @@ public sealed partial class FormMain : Form
         {
             AppendLog($"Failed to edit service info: {ex.Message}");
             _logger.LogError(ex, "Failed to edit service info for {ServiceName}", service.ServiceName);
+        }
+    }
+
+    /// <summary>
+    /// Opens the NSSM editor GUI for the selected service.
+    /// Executes: <BinaryPathName> edit <ServiceName>
+    /// </summary>
+    private void EditNssmProperties(ServiceConfiguration service)
+    {
+        if (!_isRunningAsAdmin)
+        {
+            MessageBox.Show(
+                "You must run this application as administrator to edit NSSM properties.",
+                "Administrator Required",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning
+            );
+
+            return;
+        }
+
+        if (!service.IsNssmManaged)
+        {
+            MessageBox.Show(
+                "This service is not managed by NSSM.",
+                "Invalid Service",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning
+            );
+
+            return;
+        }
+
+        try
+        {
+            var binaryPath = ExtractExePath(service.BinaryPathName);
+
+            if (string.IsNullOrEmpty(binaryPath) || !File.Exists(binaryPath))
+            {
+                MessageBox.Show(
+                    $"NSSM executable not found: {binaryPath}",
+                    "File Not Found",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+
+                return;
+            }
+
+            // Execute: <nssm-exe> edit <service-name>
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = binaryPath,
+                Arguments = $"edit {service.ServiceName}",
+                UseShellExecute = true
+            };
+
+            System.Diagnostics.Process.Start(psi);
+            AppendLog($"Opened NSSM editor for service: {service.ServiceName}");
+            _logger.LogDebug("Opened NSSM editor for service {ServiceName}", service.ServiceName);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"Failed to open NSSM editor: {ex.Message}");
+            _logger.LogError(ex, "Failed to open NSSM editor for {ServiceName}", service.ServiceName);
+            MessageBox.Show(
+                $"Failed to open NSSM editor: {ex.Message}",
+                "Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error
+            );
         }
     }
 

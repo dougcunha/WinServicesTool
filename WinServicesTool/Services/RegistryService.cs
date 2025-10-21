@@ -45,4 +45,32 @@ public sealed class RegistryService(IRegistryEditor editor, IProcessLauncher lau
         else if (key.GetValue("Description") != null)
             key.DeleteValue("Description", throwOnMissingValue: false);
     }
+
+    /// <summary>
+    /// Detects if a service is managed by NSSM (Non-Sucking Service Manager).
+    /// NSSM services have a "Parameters\Application" registry entry pointing to the actual executable.
+    /// </summary>
+    public bool IsServiceManagedByNssm(string serviceName)
+    {
+        if (string.IsNullOrEmpty(serviceName))
+            return false;
+
+        try
+        {
+            var parametersPath = $@"SYSTEM\CurrentControlSet\Services\{serviceName}\Parameters";
+            using var parametersKey = Registry.LocalMachine.OpenSubKey(parametersPath);
+
+            if (parametersKey == null)
+                return false;
+
+            // If the "Application" registry entry exists, it's an NSSM-managed service
+            var applicationValue = parametersKey.GetValue("Application");
+            return applicationValue != null;
+        }
+        catch
+        {
+            // If any error occurs during registry check, assume it's not NSSM
+            return false;
+        }
+    }
 }

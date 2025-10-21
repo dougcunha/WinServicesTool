@@ -17,4 +17,11 @@ public interface IRegistryService
     /// <param name="displayName">The new display name.</param>
     /// <param name="description">The new description.</param>
     void UpdateServiceInfo(string serviceName, string displayName, string description);
+
+    /// <summary>
+    /// Detects if a service is managed by NSSM (Non-Sucking Service Manager).
+    /// </summary>
+    /// <param name="serviceName">The service name to check.</param>
+    /// <returns>True if the service is managed by NSSM; otherwise false.</returns>
+    bool IsServiceManagedByNssm(string serviceName);
 }

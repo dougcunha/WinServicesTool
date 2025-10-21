@@ -35,6 +35,9 @@ public sealed partial class ServiceConfiguration : INotifyPropertyChanged
     public bool CanPauseAndContinue { get; set; }
     public bool CanShutdown { get; set; }
 
+    // NSSM detection
+    public bool IsNssmManaged { get; set; }
+
     /// <summary>
     /// Gets a human-readable description of the service type for display purposes.
     /// </summary>
