@@ -37,6 +37,7 @@ The content is organized as follows:
 
 # Directory Structure
 ```
+.claude/settings.local.json
 .editorconfig
 tests/WinServicesTool.Tests/AppConfigTests.cs
 tests/WinServicesTool.Tests/FormMainRegistryTests.cs
@@ -75,6 +76,19 @@ WinServicesTool/WinServicesTool.csproj
 ```
 
 # Files
+
+## File: .claude/settings.local.json
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
+```
 
 ## File: WinServicesTool/FodyWeavers.xml
 ```xml
@@ -315,65 +329,6 @@ var psi = new ProcessStartInfo
 return Process.Start(psi);
 ```
 
-## File: WinServicesTool/Services/ServicePathHelperFactory.cs
-```csharp
-/// <summary>
-/// Factory-based wrapper around <see cref="ServicePathHelper"/> to provide a scoped service
-/// for dependency injection without holding persistent SCManager connections.
-/// </summary>
-public sealed class ServicePathHelperFactory(ILogger<ServicePathHelperFactory> logger) : IServicePathHelper
-⋮----
-public string[] GetAllServiceNames()
-⋮----
-using var helper = new ServicePathHelper();
-return helper.GetAllServiceNames();
-⋮----
-public ServiceConfiguration? GetServiceConfiguration(string serviceName)
-⋮----
-return helper.GetServiceConfiguration(serviceName);
-⋮----
-public async Task<ServiceConfiguration?> GetServiceConfigurationAsync(
-⋮----
-return await helper.GetServiceConfigurationAsync(serviceName, cancellationToken);
-⋮----
-public async Task<Dictionary<string, ServiceConfiguration?>> GetServiceConfigurationsAsync(
-⋮----
-return await helper.GetServiceConfigurationsAsync(serviceNames, progress, cancellationToken);
-⋮----
-public async Task<Dictionary<string, ServiceConfiguration?>> GetAllServiceConfigurationsAsync(
-⋮----
-return await helper.GetAllServiceConfigurationsAsync(progress, cancellationToken);
-⋮----
-public async Task<List<ServiceConfiguration>> GetServicesAsync(IProgress<int>? progress = null, CancellationToken cancellationToken = default)
-⋮----
-var serviceNames = helper.GetAllServiceNames();
-⋮----
-var config = await helper.GetServiceConfigurationAsync(serviceName, cancellationToken);
-Interlocked.Increment(ref completed);
-⋮----
-services.Add(config);
-⋮----
-return [.. services.OrderBy(s => s.DisplayName)];
-⋮----
-logger.LogError(ex, "Failed to enumerate services");
-⋮----
-public async Task StartServiceAsync(string serviceName, CancellationToken cancellationToken = default)
-⋮----
-await helper.StartServiceAsync(serviceName, cancellationToken);
-⋮----
-logger.LogError(ex, "Failed to start service {ServiceName}", serviceName);
-⋮----
-public async Task StopServiceAsync(string serviceName, CancellationToken cancellationToken = default)
-⋮----
-await helper.StopServiceAsync(serviceName, cancellationToken);
-⋮----
-logger.LogError(ex, "Failed to stop service {ServiceName}", serviceName);
-⋮----
-public void Dispose()
-⋮----
-// Nothing to dispose in factory pattern
-```
-
 ## File: WinServicesTool/Utils/ColumnHeaderHeightSettings.cs
 ```csharp
 /// <summary>
@@ -432,38 +387,66 @@ using var key = Registry.LocalMachine.OpenSubKey(subKeyPath, writable: true) ?? 
 key.SetValue(valueName, value, RegistryValueKind.DWord);
 ```
 
-## File: tests/WinServicesTool.Tests/WinServicesTool.Tests.csproj
-```
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>net9.0-windows7.0</TargetFramework>
-    <UseWindowsForms>true</UseWindowsForms>
-    <IsPackable>false</IsPackable>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
-    <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="coverlet.collector" Version="6.0.4">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Shouldly" Version="4.3.0" />
-    <PackageReference Include="NSubstitute" Version="5.3.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\WinServicesTool\WinServicesTool.csproj" />
-  </ItemGroup>
-
-</Project>
+## File: WinServicesTool/Services/ServicePathHelperFactory.cs
+```csharp
+/// <summary>
+/// Factory-based wrapper around <see cref="ServicePathHelper"/> to provide a scoped service
+/// for dependency injection without holding persistent SCManager connections.
+/// </summary>
+public sealed class ServicePathHelperFactory(ILogger<ServicePathHelperFactory> logger, IRegistryService registryService) : IServicePathHelper
+⋮----
+public string[] GetAllServiceNames()
+⋮----
+using var helper = new ServicePathHelper();
+return helper.GetAllServiceNames();
+⋮----
+public ServiceConfiguration? GetServiceConfiguration(string serviceName)
+⋮----
+var config = helper.GetServiceConfiguration(serviceName);
+⋮----
+config.IsNssmManaged = registryService.IsServiceManagedByNssm(serviceName);
+⋮----
+public async Task<ServiceConfiguration?> GetServiceConfigurationAsync(
+⋮----
+var config = await helper.GetServiceConfigurationAsync(serviceName, cancellationToken);
+⋮----
+public async Task<Dictionary<string, ServiceConfiguration?>> GetServiceConfigurationsAsync(
+⋮----
+var result = await helper.GetServiceConfigurationsAsync(serviceNames, progress, cancellationToken);
+⋮----
+kvp.Value.IsNssmManaged = registryService.IsServiceManagedByNssm(kvp.Key);
+⋮----
+public async Task<Dictionary<string, ServiceConfiguration?>> GetAllServiceConfigurationsAsync(
+⋮----
+var result = await helper.GetAllServiceConfigurationsAsync(progress, cancellationToken);
+⋮----
+public async Task<List<ServiceConfiguration>> GetServicesAsync(IProgress<int>? progress = null, CancellationToken cancellationToken = default)
+⋮----
+var serviceNames = helper.GetAllServiceNames();
+⋮----
+Interlocked.Increment(ref completed);
+⋮----
+services.Add(config);
+⋮----
+return [.. services.OrderBy(s => s.DisplayName)];
+⋮----
+logger.LogError(ex, "Failed to enumerate services");
+⋮----
+public async Task StartServiceAsync(string serviceName, CancellationToken cancellationToken = default)
+⋮----
+await helper.StartServiceAsync(serviceName, cancellationToken);
+⋮----
+logger.LogError(ex, "Failed to start service {ServiceName}", serviceName);
+⋮----
+public async Task StopServiceAsync(string serviceName, CancellationToken cancellationToken = default)
+⋮----
+await helper.StopServiceAsync(serviceName, cancellationToken);
+⋮----
+logger.LogError(ex, "Failed to stop service {ServiceName}", serviceName);
+⋮----
+public void Dispose()
+⋮----
+// Nothing to dispose in factory pattern
 ```
 
 ## File: WinServicesTool.slnx
@@ -548,25 +531,6 @@ bool IsAdministrator();
 /// Returns true if the relaunch was initiated.
 ⋮----
 void AskAndRestartAsAdmin(Form? owner, bool shouldAsk);
-```
-
-## File: WinServicesTool/Services/IRegistryService.cs
-```csharp
-/// <summary>
-/// Abstraction for operations against the Windows Registry used by the UI.
-/// </summary>
-public interface IRegistryService
-⋮----
-/// Sets the LastKey value for Regedit so regedit opens at the specified path.
-⋮----
-void SetRegeditLastKey(string registryPath);
-⋮----
-/// Updates the display name and description of a Windows service in the registry.
-⋮----
-/// <param name="serviceName">The service name to update.</param>
-/// <param name="displayName">The new display name.</param>
-/// <param name="description">The new description.</param>
-void UpdateServiceInfo(string serviceName, string displayName, string description);
 ```
 
 ## File: .editorconfig
@@ -754,6 +718,65 @@ results["ok"].ShouldBeTrue();
 results["bad"].ShouldBeFalse();
 ```
 
+## File: tests/WinServicesTool.Tests/WinServicesTool.Tests.csproj
+```
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows7.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector" Version="6.0.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Shouldly" Version="4.3.0" />
+    <PackageReference Include="NSubstitute" Version="5.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\WinServicesTool\WinServicesTool.csproj" />
+  </ItemGroup>
+
+</Project>
+```
+
+## File: WinServicesTool/Services/IRegistryService.cs
+```csharp
+/// <summary>
+/// Abstraction for operations against the Windows Registry used by the UI.
+/// </summary>
+public interface IRegistryService
+⋮----
+/// Sets the LastKey value for Regedit so regedit opens at the specified path.
+⋮----
+void SetRegeditLastKey(string registryPath);
+⋮----
+/// Updates the display name and description of a Windows service in the registry.
+⋮----
+/// <param name="serviceName">The service name to update.</param>
+/// <param name="displayName">The new display name.</param>
+/// <param name="description">The new description.</param>
+void UpdateServiceInfo(string serviceName, string displayName, string description);
+⋮----
+/// Detects if a service is managed by NSSM (Non-Sucking Service Manager).
+⋮----
+/// <param name="serviceName">The service name to check.</param>
+/// <returns>True if the service is managed by NSSM; otherwise false.</returns>
+bool IsServiceManagedByNssm(string serviceName);
+```
+
 ## File: WinServicesTool/Services/IServiceOperationOrchestrator.cs
 ```csharp
 /// <summary>
@@ -772,6 +795,18 @@ Task<Dictionary<string, bool>> StopServicesAsync(IEnumerable<ServiceConfiguratio
 /// Restarts the provided services (stop then start) and returns a map of serviceName->success.
 ⋮----
 Task<Dictionary<string, bool>> RestartServicesAsync(IEnumerable<ServiceConfiguration> services, CancellationToken cancellationToken = default);
+```
+
+## File: WinServicesTool/Models/ServiceTypeEx.cs
+```csharp
+public static class ServiceTypeHelper
+⋮----
+public static string Describe(this ServiceTypeEx rawType)
+⋮----
+where rawType.HasFlag(flag)
+select flag.ToString()).ToList();
+⋮----
+? string.Join(" + ", parts)
 ```
 
 ## File: WinServicesTool/Services/RegistryService.cs
@@ -807,6 +842,83 @@ if (!string.IsNullOrEmpty(description))
 key.SetValue("Description", description, RegistryValueKind.String);
 else if (key.GetValue("Description") != null)
 key.DeleteValue("Description", throwOnMissingValue: false);
+⋮----
+/// Detects if a service is managed by NSSM (Non-Sucking Service Manager).
+/// NSSM services have a "Parameters\Application" registry entry pointing to the actual executable.
+⋮----
+public bool IsServiceManagedByNssm(string serviceName)
+⋮----
+using var parametersKey = Registry.LocalMachine.OpenSubKey(parametersPath);
+⋮----
+// If the "Application" registry entry exists, it's an NSSM-managed service
+var applicationValue = parametersKey.GetValue("Application");
+⋮----
+// If any error occurs during registry check, assume it's not NSSM
+```
+
+## File: WinServicesTool/Services/ServiceOperationOrchestrator.cs
+```csharp
+/// <summary>
+/// Default implementation of <see cref="IServiceOperationOrchestrator"/>.
+/// </summary>
+public sealed class ServiceOperationOrchestrator(IServicePathHelper serviceHelper, ILogger<ServiceOperationOrchestrator> logger) : IServiceOperationOrchestrator
+⋮----
+public async Task<Dictionary<string, bool>> StartServicesAsync(IEnumerable<ServiceConfiguration> services, CancellationToken cancellationToken = default)
+⋮----
+cancellationToken.ThrowIfCancellationRequested();
+⋮----
+await serviceHelper.StartServiceAsync(s.ServiceName, cancellationToken);
+⋮----
+logger.LogInformation("Started service {ServiceName}", s.ServiceName);
+⋮----
+logger.LogInformation("Start cancelled for {ServiceName}", s.ServiceName);
+⋮----
+logger.LogError(ex, "Failed to start service {ServiceName}", s.ServiceName);
+⋮----
+public async Task<Dictionary<string, bool>> StopServicesAsync(IEnumerable<ServiceConfiguration> services, CancellationToken cancellationToken = default)
+⋮----
+await serviceHelper.StopServiceAsync(s.ServiceName, cancellationToken);
+⋮----
+logger.LogInformation("Stopped service {ServiceName}", s.ServiceName);
+⋮----
+logger.LogInformation("Stop cancelled for {ServiceName}", s.ServiceName);
+⋮----
+logger.LogError(ex, "Failed to stop service {ServiceName}", s.ServiceName);
+⋮----
+public async Task<Dictionary<string, bool>> RestartServicesAsync(IEnumerable<ServiceConfiguration> services, CancellationToken cancellationToken = default)
+⋮----
+logger.LogInformation("Restarted service {ServiceName}", s.ServiceName);
+⋮----
+logger.LogInformation("Restart cancelled for {ServiceName}", s.ServiceName);
+⋮----
+logger.LogError(ex, "Failed to restart service {ServiceName}", s.ServiceName);
+```
+
+## File: WinServicesTool/Services/PrivilegeService.cs
+```csharp
+public sealed class PrivilegeService(ILogger<PrivilegeService> logger) : IPrivilegeService
+⋮----
+public bool IsAdministrator()
+⋮----
+using var identity = WindowsIdentity.GetCurrent();
+var principal = new WindowsPrincipal(identity);
+return principal.IsInRole(WindowsBuiltInRole.Administrator);
+⋮----
+logger.LogWarning(ex, "Failed to determine administrator status");
+⋮----
+public void AskAndRestartAsAdmin(Form? owner, bool shouldAsk)
+⋮----
+var resp = MessageBox.Show
+⋮----
+var psi = new ProcessStartInfo
+⋮----
+FileName = Process.GetCurrentProcess().MainModule?.FileName ?? Application.ExecutablePath,
+⋮----
+Process.Start(psi);
+Application.Exit();
+⋮----
+logger.LogError(ex, "Failed to relaunch elevated");
+MessageBox.Show(owner, "Unable to start the application with elevated privileges.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 ```
 
 ## File: WinServicesTool/Services/ServiceNativeHelper.cs
@@ -821,6 +933,8 @@ public sealed partial class ServiceConfiguration : INotifyPropertyChanged
 // Status information
 ⋮----
 // Control capabilities
+⋮----
+// NSSM detection
 ⋮----
 /// Gets a human-readable description of the service type for display purposes.
 ⋮----
@@ -1045,83 +1159,6 @@ services.Add(config);
 public void Dispose()
 ⋮----
 _semaphore.Dispose();
-```
-
-## File: WinServicesTool/Models/ServiceTypeEx.cs
-```csharp
-public static class ServiceTypeHelper
-⋮----
-public static string Describe(this ServiceTypeEx rawType)
-⋮----
-where rawType.HasFlag(flag)
-select flag.ToString()).ToList();
-⋮----
-? string.Join(" + ", parts)
-```
-
-## File: WinServicesTool/Services/ServiceOperationOrchestrator.cs
-```csharp
-/// <summary>
-/// Default implementation of <see cref="IServiceOperationOrchestrator"/>.
-/// </summary>
-public sealed class ServiceOperationOrchestrator(IServicePathHelper serviceHelper, ILogger<ServiceOperationOrchestrator> logger) : IServiceOperationOrchestrator
-⋮----
-public async Task<Dictionary<string, bool>> StartServicesAsync(IEnumerable<ServiceConfiguration> services, CancellationToken cancellationToken = default)
-⋮----
-cancellationToken.ThrowIfCancellationRequested();
-⋮----
-await serviceHelper.StartServiceAsync(s.ServiceName, cancellationToken);
-⋮----
-logger.LogInformation("Started service {ServiceName}", s.ServiceName);
-⋮----
-logger.LogInformation("Start cancelled for {ServiceName}", s.ServiceName);
-⋮----
-logger.LogError(ex, "Failed to start service {ServiceName}", s.ServiceName);
-⋮----
-public async Task<Dictionary<string, bool>> StopServicesAsync(IEnumerable<ServiceConfiguration> services, CancellationToken cancellationToken = default)
-⋮----
-await serviceHelper.StopServiceAsync(s.ServiceName, cancellationToken);
-⋮----
-logger.LogInformation("Stopped service {ServiceName}", s.ServiceName);
-⋮----
-logger.LogInformation("Stop cancelled for {ServiceName}", s.ServiceName);
-⋮----
-logger.LogError(ex, "Failed to stop service {ServiceName}", s.ServiceName);
-⋮----
-public async Task<Dictionary<string, bool>> RestartServicesAsync(IEnumerable<ServiceConfiguration> services, CancellationToken cancellationToken = default)
-⋮----
-logger.LogInformation("Restarted service {ServiceName}", s.ServiceName);
-⋮----
-logger.LogInformation("Restart cancelled for {ServiceName}", s.ServiceName);
-⋮----
-logger.LogError(ex, "Failed to restart service {ServiceName}", s.ServiceName);
-```
-
-## File: WinServicesTool/Services/PrivilegeService.cs
-```csharp
-public sealed class PrivilegeService(ILogger<PrivilegeService> logger) : IPrivilegeService
-⋮----
-public bool IsAdministrator()
-⋮----
-using var identity = WindowsIdentity.GetCurrent();
-var principal = new WindowsPrincipal(identity);
-return principal.IsInRole(WindowsBuiltInRole.Administrator);
-⋮----
-logger.LogWarning(ex, "Failed to determine administrator status");
-⋮----
-public void AskAndRestartAsAdmin(Form? owner, bool shouldAsk)
-⋮----
-var resp = MessageBox.Show
-⋮----
-var psi = new ProcessStartInfo
-⋮----
-FileName = Process.GetCurrentProcess().MainModule?.FileName ?? Application.ExecutablePath,
-⋮----
-Process.Start(psi);
-Application.Exit();
-⋮----
-logger.LogError(ex, "Failed to relaunch elevated");
-MessageBox.Show(owner, "Unable to start the application with elevated privileges.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 ```
 
 ## File: WinServicesTool/WinServicesTool.csproj
@@ -1968,6 +2005,11 @@ menu.Items.Add(changeStart);
 var editService = new ToolStripMenuItem("Edit Service Info...") { Enabled = _isRunningAsAdmin };
 ⋮----
 menu.Items.Add(editService);
+// Edit NSSM properties (only for NSSM-managed services)
+⋮----
+var editNssm = new ToolStripMenuItem("Edit NSSM Properties...") { Enabled = _isRunningAsAdmin };
+⋮----
+menu.Items.Add(editNssm);
 ⋮----
 // Go to registry (only for single selection)
 ⋮----
@@ -2025,6 +2067,21 @@ GridServs.Refresh();
 _logger.LogDebug("Service information updated for {ServiceName}", service.ServiceName);
 ⋮----
 _logger.LogError(ex, "Failed to edit service info for {ServiceName}", service.ServiceName);
+⋮----
+/// Opens the NSSM editor GUI for the selected service.
+/// Executes: <BinaryPathName> edit <ServiceName>
+⋮----
+private void EditNssmProperties(ServiceConfiguration service)
+⋮----
+if (string.IsNullOrEmpty(binaryPath) || !File.Exists(binaryPath))
+⋮----
+// Execute: <nssm-exe> edit <service-name>
+⋮----
+System.Diagnostics.Process.Start(psi);
+⋮----
+_logger.LogDebug("Opened NSSM editor for service {ServiceName}", service.ServiceName);
+⋮----
+_logger.LogError(ex, "Failed to open NSSM editor for {ServiceName}", service.ServiceName);
 ⋮----
 private void GridServs_ColumnHeaderMouseClick(object? sender, DataGridViewCellMouseEventArgs e)
 ⋮----
