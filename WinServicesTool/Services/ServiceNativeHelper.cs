@@ -6,16 +6,61 @@ using TimeoutException = System.TimeoutException;
 
 namespace WinServicesTool.Services;
 
+using System.Text.RegularExpressions;
+using PropertyChanged;
+
 /// <summary>
 /// Represents the complete configuration of a Windows service.
 /// </summary>
 public sealed partial class ServiceConfiguration : INotifyPropertyChanged
 {
+    // ReSharper disable once UseRawString
+    [GeneratedRegex(@"^""?([^""]+?\.exe)(?=""|$|\s)", RegexOptions.IgnoreCase)]
+    private static partial Regex RegexExtractPath();
+
+    /// <summary>
+    /// Retorna o caminho do executável principal de uma string de comando de serviço.
+    /// </summary>
+    /// <param name="serviceCommand">Linha de comando completa.</param>
+    /// <returns>Caminho do executável principal.</returns>
+    private static string? ExtractExePath(string serviceCommand)
+    {
+        if (string.IsNullOrWhiteSpace(serviceCommand))
+            return null;
+
+        var match = RegexExtractPath().Match(serviceCommand);
+
+        return match.Success ? match.Groups[1].Value : null;
+    }
+
     public required string ServiceName { get; set; }
     public ServiceTypeEx ServiceType { get; set; }
     public StartType StartType { get; set; }
     public ErrorControl ErrorControl { get; set; }
-    public string BinaryPathName { get; set; } = string.Empty;
+
+    public string BinaryPathName
+    {
+        get => field ?? string.Empty;
+        set
+        {
+            if (field == value)
+                return;
+
+            field = value;
+            MainExePath = ExtractExePath(value) ?? string.Empty;
+            OnPropertyChanged();
+        }
+    } = string.Empty;
+
+    [DoNotNotify]
+    public string MainExePath { get; private set; } = string.Empty;
+
+    [DoNotNotify]
+    public string MainExeDirectory
+        => string.IsNullOrEmpty(MainExePath)
+            ? string.Empty
+            : Path.GetDirectoryName(MainExePath) ?? string.Empty;
+
     public string? LoadOrderGroup { get; set; }
     public uint TagId { get; set; }
     public string[]? Dependencies { get; set; }
@@ -405,7 +450,7 @@ public sealed class ServicePathHelper : IServicePathHelper
 
                     while (true)
                     {
-                        var dep = Marshal.PtrToStringUni(config.lpDependencies + offset * 2);
+                        var dep = Marshal.PtrToStringUni(config.lpDependencies + (offset * 2));
 
                         if (string.IsNullOrEmpty(dep))
                             break;

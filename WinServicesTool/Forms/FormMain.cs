@@ -9,15 +9,10 @@ using WinServicesTool.Utils;
 namespace WinServicesTool.Forms;
 
 using System.Diagnostics;
-using System.Text.RegularExpressions;
 
 // ReSharper disable AsyncVoidEventHandlerMethod
 public sealed partial class FormMain : Form
 {
-    // ReSharper disable once UseRawString
-    [GeneratedRegex(@"^""?([^""]+?\.exe)(?=""|$|\s)", RegexOptions.IgnoreCase)]
-    private static partial Regex RegexExtractPath();
-
     // App configuration
     private readonly AppConfig _appConfig;
 
@@ -262,28 +257,7 @@ public sealed partial class FormMain : Form
     {
         try
         {
-            var sel = GetSelectedServices().ToList();
-
-            if (sel.Count == 0)
-            {
-                BtnStart.Enabled = BtnStop.Enabled = BtnRestart.Enabled = false;
-
-                return;
-            }
-
-            var statuses = sel.Select(s => s.GetStatus()).Distinct().ToList();
-
-            if (statuses.Count != 1)
-            {
-                BtnStart.Enabled = BtnStop.Enabled = BtnRestart.Enabled = false;
-
-                return;
-            }
-
-            var st = statuses[0];
-            BtnStart.Enabled = _isRunningAsAdmin && st == ServiceControllerStatus.Stopped;
-            BtnStop.Enabled = _isRunningAsAdmin && st is ServiceControllerStatus.Running or ServiceControllerStatus.Paused;
-            BtnRestart.Enabled = _isRunningAsAdmin && st is ServiceControllerStatus.Running or ServiceControllerStatus.Paused;
+            UpdateActionButtonsEnabled();
         }
         catch (Exception ex)
         {
@@ -333,72 +307,7 @@ public sealed partial class FormMain : Form
                 return;
 
             // Build context menu dynamically based on status
-            var menu = new ContextMenuStrip();
-
-            // If all selected are stopped, show Start
-            if (selected.All(s => s.GetStatus() == ServiceControllerStatus.Stopped))
-            {
-                var startItem = new ToolStripMenuItem("Start") { Enabled = true };
-                startItem.Click += (_, _) => BtnStart_Click(this, EventArgs.Empty);
-                startItem.Enabled = _isRunningAsAdmin;
-                menu.Items.Add(startItem);
-            }
-
-            // If any selected are running or paused, show Stop and Restart
-            if (selected.Any(s => s.GetStatus() is ServiceControllerStatus.Running or ServiceControllerStatus.Paused))
-            {
-                var stopItem = new ToolStripMenuItem("Stop") { Enabled = true };
-                stopItem.Click += (_, _) => BtnStop_Click(this, EventArgs.Empty);
-                stopItem.Enabled = _isRunningAsAdmin;
-                menu.Items.Add(stopItem);
-
-                var restartItem = new ToolStripMenuItem("Restart") { Enabled = true };
-                restartItem.Click += (_, _) => BtnRestart_Click(this, EventArgs.Empty);
-                restartItem.Enabled = _isRunningAsAdmin;
-                menu.Items.Add(restartItem);
-            }
-
-            // Separator
-            menu.Items.Add(new ToolStripSeparator());
-
-            // Change start mode
-            var changeStart = new ToolStripMenuItem("Change Start Mode...") { Enabled = true };
-            changeStart.Click += (_, _) => BtnChangeStartMode_Click(this, EventArgs.Empty);
-            changeStart.Enabled = _isRunningAsAdmin;
-            menu.Items.Add(changeStart);
-
-            // Edit service info (only for single selection and admin mode)
-            if (selected.Count == 1)
-            {
-                var editService = new ToolStripMenuItem("Edit Service Info...") { Enabled = _isRunningAsAdmin };
-                editService.Click += (_, _) => EditServiceInfo(selected[0]);
-                menu.Items.Add(editService);
-
-                // Edit NSSM properties (only for NSSM-managed services)
-                if (selected[0].IsNssmManaged)
-                {
-                    var editNssm = new ToolStripMenuItem("Edit NSSM Properties...") { Enabled = _isRunningAsAdmin };
-                    editNssm.Click += (_, _) => EditNssmProperties(selected[0]);
-                    menu.Items.Add(editNssm);
-                }
-            }
-
-            // Separator
-            menu.Items.Add(new ToolStripSeparator());
-
-            // Go to registry (only for single selection)
-            if (selected.Count == 1)
-            {
-                var goToRegistry = new ToolStripMenuItem("Go to Registry") { Enabled = true };
-                goToRegistry.Click += (_, _) => OpenServiceInRegistry(selected[0].ServiceName);
-                menu.Items.Add(goToRegistry);
-
-                var openInExplorer = new ToolStripMenuItem("Open Service Path in Explorer") { Enabled = true };
-                openInExplorer.Click += OpenSelectedServicePathOnExplorer;
-
-                if (File.Exists(ExtractExePath(selected[0].BinaryPathName)))
-                    menu.Items.Add(openInExplorer);
-            }
+            var menu = BuildContextMenuStrip(selected);
 
             // Show menu at cursor
             menu.Show(GridServs, new Point(e.X, e.Y));
@@ -409,19 +318,104 @@ public sealed partial class FormMain : Form
         }
     }
 
-    /// <summary>
-    /// Retorna o caminho do executável principal de uma string de comando de serviço.
-    /// </summary>
-    /// <param name="serviceCommand">Linha de comando completa.</param>
-    /// <returns>Caminho do executável principal.</returns>
-    private static string? ExtractExePath(string serviceCommand)
+    private ContextMenuStrip BuildContextMenuStrip(List<ServiceConfiguration> selected)
     {
-        if (string.IsNullOrWhiteSpace(serviceCommand))
-            return null;
+        var menu = new ContextMenuStrip();
 
-        var match = RegexExtractPath().Match(serviceCommand);
+        // If all selected are stopped, show Start
+        if (selected.All(s => s.GetStatus() == ServiceControllerStatus.Stopped))
+        {
+            var startItem = new ToolStripMenuItem("Start") { Enabled = true };
+            startItem.Click += (_, _) => BtnStart_Click(this, EventArgs.Empty);
+            startItem.Enabled = _isRunningAsAdmin;
+            menu.Items.Add(startItem);
+        }
 
-        return match.Success ? match.Groups[1].Value : null;
+        // If any selected are running or paused, show Stop and Restart
+        if (selected.Any(s => s.GetStatus() is ServiceControllerStatus.Running or ServiceControllerStatus.Paused))
+        {
+            var stopItem = new ToolStripMenuItem("Stop") { Enabled = true };
+            stopItem.Click += (_, _) => BtnStop_Click(this, EventArgs.Empty);
+            stopItem.Enabled = _isRunningAsAdmin;
+            menu.Items.Add(stopItem);
+
+            var restartItem = new ToolStripMenuItem("Restart") { Enabled = true };
+            restartItem.Click += (_, _) => BtnRestart_Click(this, EventArgs.Empty);
+            restartItem.Enabled = _isRunningAsAdmin;
+            menu.Items.Add(restartItem);
+        }
+
+        // Separator
+        menu.Items.Add(new ToolStripSeparator());
+
+        // Change start mode
+        var changeStart = new ToolStripMenuItem("Change Start Mode...") { Enabled = true };
+        changeStart.Click += (_, _) => BtnChangeStartMode_Click(this, EventArgs.Empty);
+        changeStart.Enabled = _isRunningAsAdmin;
+        menu.Items.Add(changeStart);
+
+        // Edit service info (only for single selection and admin mode)
+        if (selected.Count == 1)
+        {
+            var editService = new ToolStripMenuItem("Edit Service Info...") { Enabled = _isRunningAsAdmin };
+            editService.Click += (_, _) => EditServiceInfo(selected[0]);
+            menu.Items.Add(editService);
+
+            // Edit NSSM properties (only for NSSM-managed services)
+            if (selected[0].IsNssmManaged)
+            {
+                var editNssm = new ToolStripMenuItem("Edit NSSM Properties...") { Enabled = _isRunningAsAdmin };
+                editNssm.Click += (_, _) => EditNssmProperties(selected[0]);
+                menu.Items.Add(editNssm);
+            }
+        }
+
+        // Separator
+        menu.Items.Add(new ToolStripSeparator());
+
+        // Go to registry (only for single selection)
+        if (selected.Count != 1)
+            return menu;
+
+        var goToRegistry = new ToolStripMenuItem("Go to Registry") { Enabled = true };
+        goToRegistry.Click += (_, _) => OpenServiceInRegistry(selected[0].ServiceName);
+        menu.Items.Add(goToRegistry);
+
+        if (File.Exists(selected[0].MainExePath))
+        {
+            var openInExplorer = new ToolStripMenuItem("Open Service Path in Explorer") { Enabled = true };
+            openInExplorer.Click += OpenSelectedServicePathOnExplorer;
+            menu.Items.Add(openInExplorer);
+        } else if (Directory.Exists(selected[0].MainExeDirectory))
+        {
+            var openFolderInExplorer = new ToolStripMenuItem("Open Service Folder in Explorer") { Enabled = true };
+
+            openFolderInExplorer.Click += OpenFolderInExplorer_Click;
+            menu.Items.Add(openFolderInExplorer);
+        }
+
+        return menu;
+    }
+
+    private void OpenFolderInExplorer_Click(object? sender, EventArgs e)
+    {
+        var selected = GetSelectedServices().ToList();
+
+        if (selected.Count != 1)
+            return;
+
+        try
+        {
+            var path = selected[0].MainExeDirectory;
+            _logger.LogInformation("Opening Explorer at {Path}", path);
+
+            Process.Start("explorer.exe", $"\"{path}\"");
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"Failed to open service folder: {ex.Message}");
+            _logger.LogError(ex, "Failed to open service folder for {ServiceName}", selected[0].ServiceName);
+        }
     }
 
     private void OpenSelectedServicePathOnExplorer(object? sender, EventArgs e)
@@ -433,8 +427,7 @@ public sealed partial class FormMain : Form
 
         try
         {
-            // Extract the first path from BinaryPathName (it may contain arguments)
-            var path = ExtractExePath(selected[0].BinaryPathName);
+            var path = selected[0].MainExePath;
 
             if (string.IsNullOrEmpty(path) || !File.Exists(path))
             {
@@ -504,10 +497,6 @@ public sealed partial class FormMain : Form
         }
     }
 
-    /// <summary>
-    /// Opens the NSSM editor GUI for the selected service.
-    /// Executes: <BinaryPathName> edit <ServiceName>
-    /// </summary>
     private void EditNssmProperties(ServiceConfiguration service)
     {
         if (!_isRunningAsAdmin)
@@ -522,25 +511,14 @@ public sealed partial class FormMain : Form
             return;
         }
 
-        if (!service.IsNssmManaged)
-        {
-            MessageBox.Show(
-                "This service is not managed by NSSM.",
-                "Invalid Service",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Warning
-            );
-
-            return;
-        }
-
         try
         {
-            var binaryPath = ExtractExePath(service.BinaryPathName);
+            var binaryPath = service.MainExePath;
 
             if (string.IsNullOrEmpty(binaryPath) || !File.Exists(binaryPath))
             {
-                MessageBox.Show(
+                MessageBox.Show
+                (
                     $"NSSM executable not found: {binaryPath}",
                     "File Not Found",
                     MessageBoxButtons.OK,
@@ -551,14 +529,14 @@ public sealed partial class FormMain : Form
             }
 
             // Execute: <nssm-exe> edit <service-name>
-            var psi = new System.Diagnostics.ProcessStartInfo
+            var psi = new ProcessStartInfo
             {
                 FileName = binaryPath,
                 Arguments = $"edit {service.ServiceName}",
                 UseShellExecute = true
             };
 
-            System.Diagnostics.Process.Start(psi);
+            Process.Start(psi);
             AppendLog($"Opened NSSM editor for service: {service.ServiceName}");
             _logger.LogDebug("Opened NSSM editor for service {ServiceName}", service.ServiceName);
         }
@@ -566,7 +544,9 @@ public sealed partial class FormMain : Form
         {
             AppendLog($"Failed to open NSSM editor: {ex.Message}");
             _logger.LogError(ex, "Failed to open NSSM editor for {ServiceName}", service.ServiceName);
-            MessageBox.Show(
+
+            MessageBox.Show
+            (
                 $"Failed to open NSSM editor: {ex.Message}",
                 "Error",
                 MessageBoxButtons.OK,
@@ -622,10 +602,7 @@ public sealed partial class FormMain : Form
             };
 
             if (_sortOrder == SortOrder.None)
-            {
-                // clear property when cycling back to no-sort
-                _sortPropertyName = null;
-            }
+                _sortPropertyName = null; // clear property when cycling back to no-sort
         }
         else
         {
@@ -651,9 +628,9 @@ public sealed partial class FormMain : Form
 
             using var dlg = new FormColumnChooser([.. GridServs.Columns.Cast<DataGridViewColumn>()], visibleColumns);
 
-            #pragma warning disable WFO5002
+#pragma warning disable WFO5002
             if (await dlg.ShowDialogAsync(this) != DialogResult.OK)
-            #pragma warning restore WFO5002
+#pragma warning restore WFO5002
                 return;
 
             // Update config with selected columns
@@ -1069,6 +1046,7 @@ public sealed partial class FormMain : Form
         BtnLoad.Enabled = false;
         var previousCursor = Cursor.Current;
         Cursor.Current = Cursors.WaitCursor;
+        ConfigureBtnsForBeginOperation();
         AppendLog("Loading services...");
 
         try
@@ -1110,7 +1088,7 @@ public sealed partial class FormMain : Form
         finally
         {
             ProgressBar.Visible = false;
-            BtnLoad.Enabled = true;
+            UpdateActionButtonsEnabled();
             Cursor.Current = previousCursor;
         }
     }
@@ -1149,13 +1127,15 @@ public sealed partial class FormMain : Form
     {
         var text = TxtFilter.Text.Trim();
 
-        List<ServiceConfiguration> working;
+        var working = _allServices;
 
-        if (string.IsNullOrEmpty(text))
+        if (ChkShowInvalidServices.Checked)
         {
-            working = [.. _allServices];
+            // Include services that failed to load (null DisplayName/ServiceName)
+            working = [.. _allServices.Where(s => string.IsNullOrWhiteSpace(s.MainExePath) || !File.Exists(s.MainExePath))];
         }
-        else
+
+        if (!string.IsNullOrEmpty(text))
         {
             var lower = text.ToLowerInvariant();
 
@@ -1253,6 +1233,48 @@ public sealed partial class FormMain : Form
         LblStatusServicesRunning.Text = $"Running: {_servicesList.Count(s => s.GetStatus() == ServiceControllerStatus.Running)}";
     }
 
+    private void ConfigureBtnsForBeginOperation()
+    {
+        BtnChangeStartMode.Enabled = BtnLoad.Enabled = BtnStart.Enabled = BtnStop.Enabled = BtnRestart.Enabled = false;
+        BtnCancel.Enabled = true;
+    }
+
+    private void UpdateActionButtonsEnabled()
+    {
+        BtnCancel.Enabled = false;
+        BtnChangeStartMode.Enabled = BtnLoad.Enabled = true;
+
+        try
+        {
+            var sel = GetSelectedServices().ToList();
+
+            if (sel.Count == 0)
+            {
+                BtnStart.Enabled = BtnStop.Enabled = BtnRestart.Enabled = false;
+
+                return;
+            }
+
+            var statuses = sel.Select(s => s.GetStatus()).Distinct().ToList();
+
+            if (statuses.Count != 1)
+            {
+                BtnStart.Enabled = BtnStop.Enabled = BtnRestart.Enabled = false;
+
+                return;
+            }
+
+            var st = statuses[0];
+            BtnStart.Enabled = _isRunningAsAdmin && st == ServiceControllerStatus.Stopped;
+            BtnStop.Enabled = _isRunningAsAdmin && st is ServiceControllerStatus.Running or ServiceControllerStatus.Paused;
+            BtnRestart.Enabled = _isRunningAsAdmin && st is ServiceControllerStatus.Running or ServiceControllerStatus.Paused;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating action buttons enabled state");
+        }
+    }
+
     private void BtnChangeStartMode_Click(object? sender, EventArgs e)
     {
         var selecteds = GetSelectedServices().ToList();
@@ -1334,11 +1356,26 @@ public sealed partial class FormMain : Form
     {
         try
         {
-            var item = _servicesList[e.RowIndex];
+            if (e.RowIndex < 0 || e.RowIndex >= _servicesList.Count)
+                return;
 
-            // Color the entire row by status
+            var item = _servicesList[e.RowIndex];
             var row = GridServs.Rows[e.RowIndex];
 
+            // Define a base font, which will be regular
+            var baseFont = (Font?)row.DefaultCellStyle.Font ?? GridServs.DefaultCellStyle.Font; // Yes, this can be null
+            var style = FontStyle.Regular;
+
+            // Check if the executable exists
+            var exePath = item.MainExePath;
+
+            if (string.IsNullOrEmpty(exePath) || !File.Exists(exePath))
+                style |= FontStyle.Strikeout;
+
+            // Apply font style
+            row.DefaultCellStyle.Font = new Font(baseFont, style);
+
+            // Color the entire row by status
             row.DefaultCellStyle.BackColor = item.GetStatus() switch
             {
                 ServiceControllerStatus.Running => Color.FromArgb(230, 255, 230), // light green
@@ -1398,14 +1435,13 @@ public sealed partial class FormMain : Form
             return;
         }
 
-        BtnStart.Enabled = false;
-        BtnCancel.Enabled = true;
         AppendLog($"Starting {selectedServices.Count} service(s)...");
 
         // ReSharper disable once MethodHasAsyncOverload
         _currentOperationCts?.Cancel();
         _currentOperationCts?.Dispose();
         _currentOperationCts = new CancellationTokenSource();
+        ConfigureBtnsForBeginOperation();
 
         try
         {
@@ -1430,8 +1466,7 @@ public sealed partial class FormMain : Form
         }
         finally
         {
-            BtnStart.Enabled = true;
-            BtnCancel.Enabled = false;
+            UpdateActionButtonsEnabled();
             _currentOperationCts?.Dispose();
             _currentOperationCts = null;
         }
@@ -1454,14 +1489,13 @@ public sealed partial class FormMain : Form
             return;
         }
 
-        BtnStop.Enabled = false;
-        BtnCancel.Enabled = true;
         AppendLog($"Stopping {selectedServices.Count} service(s)...");
 
         // ReSharper disable once MethodHasAsyncOverload
         _currentOperationCts?.Cancel();
         _currentOperationCts?.Dispose();
         _currentOperationCts = new CancellationTokenSource();
+        ConfigureBtnsForBeginOperation();
 
         try
         {
@@ -1486,8 +1520,7 @@ public sealed partial class FormMain : Form
         }
         finally
         {
-            BtnStop.Enabled = true;
-            BtnCancel.Enabled = false;
+            UpdateActionButtonsEnabled();
             _currentOperationCts?.Dispose();
             _currentOperationCts = null;
         }
@@ -1508,14 +1541,13 @@ public sealed partial class FormMain : Form
             return;
         }
 
-        BtnRestart.Enabled = false;
-        BtnCancel.Enabled = true;
         AppendLog($"Restarting {sel.Count} service(s)...");
 
         // ReSharper disable once MethodHasAsyncOverload
         _currentOperationCts?.Cancel();
         _currentOperationCts?.Dispose();
         _currentOperationCts = new CancellationTokenSource();
+        ConfigureBtnsForBeginOperation();
 
         try
         {
@@ -1539,8 +1571,7 @@ public sealed partial class FormMain : Form
         }
         finally
         {
-            BtnRestart.Enabled = true;
-            BtnCancel.Enabled = false;
+            UpdateActionButtonsEnabled();
             _currentOperationCts?.Dispose();
             _currentOperationCts = null;
         }
@@ -1648,4 +1679,7 @@ public sealed partial class FormMain : Form
         foreach (var dep in service.Dependencies.Select(s => _allServices.Find(a => a.ServiceName == s)).Where(s => s is not null))
             LstDependencies.Items.Add($"• {dep!.DisplayName} ({dep.ServiceName})");
     }
+
+    private void ChkShowInvalidServices_Click(object sender, EventArgs e)
+        => RefreshServiceListAsync().SafeFireAndForget(x => _logger.LogError(x, "Failed to load services"));
 }

@@ -47,6 +47,7 @@
             LblFilterStatus = new Label();
             LblStartMode = new Label();
             BtnColumns = new Button();
+            ChkShowInvalidServices = new CheckBox();
             GridServs = new DataGridView();
             ColServiceName = new DataGridViewTextBoxColumn();
             ColServiceStartName = new DataGridViewTextBoxColumn();
@@ -275,19 +276,21 @@
             // 
             // PnlFiltros
             // 
-            PnlFiltros.ColumnCount = 6;
+            PnlFiltros.ColumnCount = 7;
             PnlFiltros.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70F));
             PnlFiltros.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
             PnlFiltros.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 50F));
             PnlFiltros.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
+            PnlFiltros.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 179F));
             PnlFiltros.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             PnlFiltros.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 30F));
             PnlFiltros.Controls.Add(CbFilterStatus, 1, 0);
             PnlFiltros.Controls.Add(CbFilterStartMode, 3, 0);
-            PnlFiltros.Controls.Add(TxtFilter, 4, 0);
+            PnlFiltros.Controls.Add(TxtFilter, 5, 0);
             PnlFiltros.Controls.Add(LblFilterStatus, 0, 0);
             PnlFiltros.Controls.Add(LblStartMode, 2, 0);
-            PnlFiltros.Controls.Add(BtnColumns, 5, 0);
+            PnlFiltros.Controls.Add(BtnColumns, 6, 0);
+            PnlFiltros.Controls.Add(ChkShowInvalidServices, 4, 0);
             PnlFiltros.Dock = DockStyle.Fill;
             PnlFiltros.Location = new Point(3, 53);
             PnlFiltros.Name = "PnlFiltros";
@@ -323,11 +326,11 @@
             TxtFilter.BorderStyle = BorderStyle.FixedSingle;
             TxtFilter.Dock = DockStyle.Fill;
             TxtFilter.Font = new Font("Segoe UI", 10F);
-            TxtFilter.Location = new Point(525, 5);
+            TxtFilter.Location = new Point(704, 5);
             TxtFilter.Margin = new Padding(5, 5, 5, 3);
             TxtFilter.Name = "TxtFilter";
             TxtFilter.PlaceholderText = "Filter text... (ctrl + k)";
-            TxtFilter.Size = new Size(686, 25);
+            TxtFilter.Size = new Size(507, 25);
             TxtFilter.TabIndex = 2;
             // 
             // LblFilterStatus
@@ -366,6 +369,18 @@
             BtnColumns.TabIndex = 5;
             BtnColumns.UseVisualStyleBackColor = true;
             BtnColumns.Click += BtnColumns_Click;
+            // 
+            // ChkShowInvalidServices
+            // 
+            ChkShowInvalidServices.AutoSize = true;
+            ChkShowInvalidServices.Dock = DockStyle.Fill;
+            ChkShowInvalidServices.Location = new Point(523, 3);
+            ChkShowInvalidServices.Name = "ChkShowInvalidServices";
+            ChkShowInvalidServices.Size = new Size(173, 28);
+            ChkShowInvalidServices.TabIndex = 6;
+            ChkShowInvalidServices.Text = "Show only invalid services";
+            ChkShowInvalidServices.UseVisualStyleBackColor = true;
+            ChkShowInvalidServices.Click += ChkShowInvalidServices_Click;
             // 
             // GridServs
             // 
@@ -819,5 +834,6 @@
         private Label LblDependencies;
         private Label LblDescription;
         private TextBox TextDescription;
+        private CheckBox ChkShowInvalidServices;
     }
 }

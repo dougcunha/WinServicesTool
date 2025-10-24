@@ -20,10 +20,7 @@ public sealed class ServicePathHelperFactory(ILogger<ServicePathHelperFactory> l
         using var helper = new ServicePathHelper();
 
         var config = helper.GetServiceConfiguration(serviceName);
-        if (config != null)
-        {
-            config.IsNssmManaged = registryService.IsServiceManagedByNssm(serviceName);
-        }
+        config?.IsNssmManaged = registryService.IsServiceManagedByNssm(serviceName);
 
         return config;
     }
@@ -35,10 +32,7 @@ public sealed class ServicePathHelperFactory(ILogger<ServicePathHelperFactory> l
         using var helper = new ServicePathHelper();
 
         var config = await helper.GetServiceConfigurationAsync(serviceName, cancellationToken);
-        if (config != null)
-        {
-            config.IsNssmManaged = registryService.IsServiceManagedByNssm(serviceName);
-        }
+        config?.IsNssmManaged = registryService.IsServiceManagedByNssm(serviceName);
 
         return config;
     }
@@ -51,13 +45,9 @@ public sealed class ServicePathHelperFactory(ILogger<ServicePathHelperFactory> l
         using var helper = new ServicePathHelper();
 
         var result = await helper.GetServiceConfigurationsAsync(serviceNames, progress, cancellationToken);
+
         foreach (var kvp in result)
-        {
-            if (kvp.Value != null)
-            {
-                kvp.Value.IsNssmManaged = registryService.IsServiceManagedByNssm(kvp.Key);
-            }
-        }
+            kvp.Value?.IsNssmManaged = registryService.IsServiceManagedByNssm(kvp.Key);
 
         return result;
     }
@@ -69,13 +59,9 @@ public sealed class ServicePathHelperFactory(ILogger<ServicePathHelperFactory> l
         using var helper = new ServicePathHelper();
 
         var result = await helper.GetAllServiceConfigurationsAsync(progress, cancellationToken);
+
         foreach (var kvp in result)
-        {
-            if (kvp.Value != null)
-            {
-                kvp.Value.IsNssmManaged = registryService.IsServiceManagedByNssm(kvp.Key);
-            }
-        }
+            kvp.Value?.IsNssmManaged = registryService.IsServiceManagedByNssm(kvp.Key);
 
         return result;
     }
@@ -97,11 +83,11 @@ public sealed class ServicePathHelperFactory(ILogger<ServicePathHelperFactory> l
                 Interlocked.Increment(ref completed);
                 progress?.Report(completed);
 
-                if (config != null)
-                {
-                    config.IsNssmManaged = registryService.IsServiceManagedByNssm(serviceName);
-                    services.Add(config);
-                }
+                if (config == null)
+                    continue;
+
+                config.IsNssmManaged = registryService.IsServiceManagedByNssm(serviceName);
+                services.Add(config);
             }
 
             return [.. services.OrderBy(s => s.DisplayName)];
@@ -109,6 +95,7 @@ public sealed class ServicePathHelperFactory(ILogger<ServicePathHelperFactory> l
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to enumerate services");
+
             throw;
         }
     }
@@ -123,6 +110,7 @@ public sealed class ServicePathHelperFactory(ILogger<ServicePathHelperFactory> l
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to start service {ServiceName}", serviceName);
+
             throw;
         }
     }
@@ -137,6 +125,7 @@ public sealed class ServicePathHelperFactory(ILogger<ServicePathHelperFactory> l
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to stop service {ServiceName}", serviceName);
+
             throw;
         }
     }
