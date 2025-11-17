@@ -33,6 +33,8 @@ public sealed partial class FormMain : Form
     private readonly bool _shouldSaveOnClose;
     private readonly bool _isRunningAsAdmin;
     private readonly bool _restartingAsAdmin;
+    private Font? _fontRegular;
+    private readonly Dictionary<string, Font> _fontCache = [];
 
     // Store original FillWeight values to detect user modifications
     private readonly Dictionary<string, float> _originalFillWeights = [];
@@ -186,6 +188,8 @@ public sealed partial class FormMain : Form
 
     private void FormPrincipal_Shown(object? sender, EventArgs e)
     {
+        _isInitializingColumns = true;
+
         try
         {
             // Restore window position/size/state from config
@@ -214,6 +218,10 @@ public sealed partial class FormMain : Form
         catch
         {
             // ignore restore failures
+        }
+        finally
+        {
+            _isInitializingColumns = false;
         }
     }
 
@@ -614,7 +622,7 @@ public sealed partial class FormMain : Form
     }
 
     private void GridServs_ColumnWidthChanged(object? sender, DataGridViewColumnEventArgs e)
-        => BeginInvoke(UpdateColumnHeaderHeight);
+        => BeginInvoke(() => UpdateColumnHeaderHeight());
 
     private void GridServs_ColumnDisplayIndexChanged(object? sender, DataGridViewColumnEventArgs e)
         => SaveColumnOrder();
@@ -628,9 +636,9 @@ public sealed partial class FormMain : Form
 
             using var dlg = new FormColumnChooser([.. GridServs.Columns.Cast<DataGridViewColumn>()], visibleColumns);
 
-#pragma warning disable WFO5002
+            #pragma warning disable WFO5002
             if (await dlg.ShowDialogAsync(this) != DialogResult.OK)
-#pragma warning restore WFO5002
+            #pragma warning restore WFO5002
                 return;
 
             // Update config with selected columns
@@ -673,10 +681,10 @@ public sealed partial class FormMain : Form
     /// Calculates and updates the column header height based on the maximum number of lines
     /// in visible column headers.
     /// </summary>
-    private void UpdateColumnHeaderHeight()
+    private void UpdateColumnHeaderHeight(bool force = false)
     {
         // Skip during initialization to avoid conflicts with auto-resize
-        if (_isInitializingColumns)
+        if (_isInitializingColumns && !force)
             return;
 
         try
@@ -685,7 +693,7 @@ public sealed partial class FormMain : Form
 
             using var g = GridServs.CreateGraphics();
             var headerStyle = GridServs.ColumnHeadersDefaultCellStyle;
-            var font = headerStyle.Font;
+            var font = headerStyle.Font!;
 
             foreach (DataGridViewColumn col in GridServs.Columns)
             {
@@ -1043,6 +1051,7 @@ public sealed partial class FormMain : Form
 
     private async Task RefreshServiceListAsync()
     {
+        _isInitializingColumns = true;
         BtnLoad.Enabled = false;
         var previousCursor = Cursor.Current;
         Cursor.Current = Cursors.WaitCursor;
@@ -1075,7 +1084,7 @@ public sealed partial class FormMain : Form
             // Update column header height after data is loaded and columns have their final widths
             // Use a small delay to ensure all auto-resize operations are complete
             await Task.Delay(50);
-            UpdateColumnHeaderHeight();
+            UpdateColumnHeaderHeight(force: true);
 
             AppendLog($"Loaded {_allServices.Count} services.");
         }
@@ -1090,6 +1099,7 @@ public sealed partial class FormMain : Form
             ProgressBar.Visible = false;
             UpdateActionButtonsEnabled();
             Cursor.Current = previousCursor;
+            _isInitializingColumns = false;
         }
     }
 
@@ -1199,29 +1209,6 @@ public sealed partial class FormMain : Form
         _servicesList.ListChanged += ServicesList_ListChanged;
         serviceBindingSource.DataSource = _servicesList;
         serviceBindingSource.ResetBindings(false);
-
-        // Ensure the DataGridView repaints so the sort glyph is shown/cleared immediately
-        GridServs.Refresh();
-
-        // If we have a sorted column, invalidate its header to ensure glyph is painted
-        if (string.IsNullOrEmpty(_sortPropertyName) || _sortOrder == SortOrder.None)
-            return;
-
-        var idx = GridServs.Columns.Cast<DataGridViewColumn>()
-            .ToList()
-            .FindIndex(c => c.DataPropertyName == _sortPropertyName || c.Name == _sortPropertyName);
-
-        if (idx < 0)
-            return;
-
-        GridServs.InvalidateColumn(idx);
-
-        // additional aggressive repaints
-        GridServs.Invalidate();
-        GridServs.Update();
-
-        // clear any selection that might leave header visually selected
-        GridServs.ClearSelection();
     }
 
     private void ServicesList_ListChanged(object? sender, ListChangedEventArgs e)
@@ -1362,8 +1349,9 @@ public sealed partial class FormMain : Form
             var item = _servicesList[e.RowIndex];
             var row = GridServs.Rows[e.RowIndex];
 
-            // Define a base font, which will be regular
-            var baseFont = (Font?)row.DefaultCellStyle.Font ?? GridServs.DefaultCellStyle.Font; // Yes, this can be null
+            // Cache the base font to avoid recreating it every time
+            _fontRegular ??= new Font((Font?)GridServs.Font ?? SystemFonts.DefaultFont, FontStyle.Regular);
+
             var style = FontStyle.Regular;
 
             // Check if the executable exists
@@ -1372,8 +1360,16 @@ public sealed partial class FormMain : Form
             if (string.IsNullOrEmpty(exePath) || !File.Exists(exePath))
                 style |= FontStyle.Strikeout;
 
-            // Apply font style
-            row.DefaultCellStyle.Font = new Font(baseFont, style);
+            // Use cached font or create and cache it
+            var cacheKey = style.ToString();
+
+            if (!_fontCache.TryGetValue(cacheKey, out var font))
+            {
+                font = new Font(GridServs.Font ?? SystemFonts.DefaultFont, style);
+                _fontCache[cacheKey] = font;
+            }
+
+            row.DefaultCellStyle.Font = font;
 
             // Color the entire row by status
             row.DefaultCellStyle.BackColor = item.GetStatus() switch
@@ -1586,7 +1582,6 @@ public sealed partial class FormMain : Form
         {
             // Save current window bounds/state to config
             var rect = (WindowState == FormWindowState.Normal) ? Bounds : RestoreBounds;
-
             _appConfig.WindowLeft = rect.Left;
             _appConfig.WindowTop = rect.Top;
             _appConfig.WindowWidth = rect.Width;

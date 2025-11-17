@@ -60,11 +60,9 @@ public sealed class RegistryService(IRegistryEditor editor, IProcessLauncher lau
             var parametersPath = $@"SYSTEM\CurrentControlSet\Services\{serviceName}\Parameters";
             using var parametersKey = Registry.LocalMachine.OpenSubKey(parametersPath);
 
-            if (parametersKey == null)
-                return false;
-
             // If the "Application" registry entry exists, it's an NSSM-managed service
-            var applicationValue = parametersKey.GetValue("Application");
+            var applicationValue = parametersKey?.GetValue("Application");
+
             return applicationValue != null;
         }
         catch

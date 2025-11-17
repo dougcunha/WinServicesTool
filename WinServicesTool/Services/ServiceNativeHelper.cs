@@ -163,18 +163,20 @@ public static class ServiceConfigurationExtensions
             var _ => System.ServiceProcess.ServiceStartMode.Manual
         };
 
-    /// <summary>
-    /// Gets the <see cref="System.ServiceProcess.ServiceControllerStatus"/> for this configuration.
-    /// </summary>
-    public static System.ServiceProcess.ServiceControllerStatus GetStatus(this ServiceConfiguration config)
-        => config.CurrentState.ToServiceControllerStatus();
+    extension(ServiceConfiguration config)
+    {
+        /// <summary>
+        /// Gets the <see cref="System.ServiceProcess.ServiceControllerStatus"/> for this configuration.
+        /// </summary>
+        public System.ServiceProcess.ServiceControllerStatus GetStatus()
+            => config.CurrentState.ToServiceControllerStatus();
 
-    /// <summary>
-    /// Gets the <see cref="System.ServiceProcess.ServiceStartMode"/> for this configuration.
-    /// </summary>
-    public static System.ServiceProcess.ServiceStartMode GetStartMode(this ServiceConfiguration config)
-        => config.StartType.ToServiceStartMode();
-
+        /// <summary>
+        /// Gets the <see cref="System.ServiceProcess.ServiceStartMode"/> for this configuration.
+        /// </summary>
+        public System.ServiceProcess.ServiceStartMode GetStartMode()
+            => config.StartType.ToServiceStartMode();
+    }
 }
 
 /// <summary>
@@ -356,6 +358,7 @@ public sealed class ServicePathHelper : IServicePathHelper
             );
 
             var lastError = Marshal.GetLastWin32Error();
+
             if (lastError != ERROR_INSUFFICIENT_BUFFER && lastError != ERROR_MORE_DATA)
                 break;
 
@@ -513,9 +516,7 @@ public sealed class ServicePathHelper : IServicePathHelper
     /// Gets the complete configuration for the specified Windows service asynchronously.
     /// Offloads the Win32 calls to a thread pool thread to avoid blocking the UI.
     /// </summary>
-    public async Task<ServiceConfiguration?> GetServiceConfigurationAsync(
-        string serviceName,
-        CancellationToken cancellationToken = default)
+    public async Task<ServiceConfiguration?> GetServiceConfigurationAsync(string serviceName, CancellationToken cancellationToken = default)
     {
         await _semaphore.WaitAsync(cancellationToken);
 
@@ -573,9 +574,7 @@ public sealed class ServicePathHelper : IServicePathHelper
     /// <param name="progress">Optional progress reporter (reports completed count)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Dictionary mapping service names to their configurations</returns>
-    public async Task<Dictionary<string, ServiceConfiguration?>> GetAllServiceConfigurationsAsync(
-        IProgress<int>? progress = null,
-        CancellationToken cancellationToken = default)
+    public async Task<Dictionary<string, ServiceConfiguration?>> GetAllServiceConfigurationsAsync(IProgress<int>? progress = null, CancellationToken cancellationToken = default)
     {
         var serviceNames = await Task.Run(GetAllServiceNames, cancellationToken);
 
@@ -685,6 +684,7 @@ public sealed class ServicePathHelper : IServicePathHelper
                 if (!StartService(serviceHandle, 0, nint.Zero))
                 {
                     var error = Marshal.GetLastWin32Error();
+
                     throw new InvalidOperationException($"Failed to start service '{serviceName}'. Error: {error}");
                 }
 
@@ -744,6 +744,7 @@ public sealed class ServicePathHelper : IServicePathHelper
                 if (!ControlService(serviceHandle, SERVICE_CONTROL_STOP, ref serviceStatus))
                 {
                     var error = Marshal.GetLastWin32Error();
+
                     throw new InvalidOperationException($"Failed to stop service '{serviceName}'. Error: {error}");
                 }
 

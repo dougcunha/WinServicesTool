@@ -6,7 +6,7 @@ namespace WinServicesTool.Services;
 /// Factory-based wrapper around <see cref="ServicePathHelper"/> to provide a scoped service
 /// for dependency injection without holding persistent SCManager connections.
 /// </summary>
-public sealed class ServicePathHelperFactory(ILogger<ServicePathHelperFactory> logger, IRegistryService registryService) : IServicePathHelper
+public sealed class ServicePathHelperFactory(ILogger<ServicePathHelperFactory> logger, IRegistryService registryService, IPrivilegeService privilege) : IServicePathHelper
 {
     public string[] GetAllServiceNames()
     {
@@ -20,19 +20,17 @@ public sealed class ServicePathHelperFactory(ILogger<ServicePathHelperFactory> l
         using var helper = new ServicePathHelper();
 
         var config = helper.GetServiceConfiguration(serviceName);
-        config?.IsNssmManaged = registryService.IsServiceManagedByNssm(serviceName);
+        config?.IsNssmManaged = privilege.IsAdministrator() && registryService.IsServiceManagedByNssm(serviceName);
 
         return config;
     }
 
-    public async Task<ServiceConfiguration?> GetServiceConfigurationAsync(
-        string serviceName,
-        CancellationToken cancellationToken = default)
+    public async Task<ServiceConfiguration?> GetServiceConfigurationAsync(string serviceName, CancellationToken cancellationToken = default)
     {
         using var helper = new ServicePathHelper();
 
         var config = await helper.GetServiceConfigurationAsync(serviceName, cancellationToken);
-        config?.IsNssmManaged = registryService.IsServiceManagedByNssm(serviceName);
+        config?.IsNssmManaged = privilege.IsAdministrator() && registryService.IsServiceManagedByNssm(serviceName);
 
         return config;
     }
@@ -47,7 +45,7 @@ public sealed class ServicePathHelperFactory(ILogger<ServicePathHelperFactory> l
         var result = await helper.GetServiceConfigurationsAsync(serviceNames, progress, cancellationToken);
 
         foreach (var kvp in result)
-            kvp.Value?.IsNssmManaged = registryService.IsServiceManagedByNssm(kvp.Key);
+            kvp.Value?.IsNssmManaged = privilege.IsAdministrator() && registryService.IsServiceManagedByNssm(kvp.Key);
 
         return result;
     }
@@ -61,7 +59,7 @@ public sealed class ServicePathHelperFactory(ILogger<ServicePathHelperFactory> l
         var result = await helper.GetAllServiceConfigurationsAsync(progress, cancellationToken);
 
         foreach (var kvp in result)
-            kvp.Value?.IsNssmManaged = registryService.IsServiceManagedByNssm(kvp.Key);
+            kvp.Value?.IsNssmManaged = privilege.IsAdministrator() && registryService.IsServiceManagedByNssm(kvp.Key);
 
         return result;
     }
@@ -86,7 +84,7 @@ public sealed class ServicePathHelperFactory(ILogger<ServicePathHelperFactory> l
                 if (config == null)
                     continue;
 
-                config.IsNssmManaged = registryService.IsServiceManagedByNssm(serviceName);
+                config.IsNssmManaged = privilege.IsAdministrator() && registryService.IsServiceManagedByNssm(serviceName);
                 services.Add(config);
             }
 
